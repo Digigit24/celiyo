@@ -71,9 +71,7 @@ export const ChatSidebar = ({
         </div>
       </nav>
       <div className="flex flex-col gap-4 items-center justify-end h-20 border-t border-black/10 mt-auto">
-        <button className="p-2 hover:bg-black/5 rounded">
-          <Users size={20} className="text-black/60" />
-        </button>
+       
         <button className="p-2 hover:bg-black/5 rounded">
           <Settings size={20} className="text-black/60" />
         </button>
