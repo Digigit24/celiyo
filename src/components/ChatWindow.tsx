@@ -63,22 +63,22 @@ export const ChatWindow = ({ conversationId, isMobile, onBack }: Props) => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversationId, messages.length]);
 
-  // Responsive: collapse icons into a menu on mobile if needed
+  // Compact rich icons for header
   const richIcons = (
-    <>
-      <Button type="button" variant="ghost" size="icon" className="rounded" aria-label="Bold">
-        <Bold size={18} />
+    <div className="flex gap-0.5 sm:gap-1">
+      <Button type="button" variant="ghost" size="icon" className="rounded p-1 sm:p-2" aria-label="Bold">
+        <Bold size={15} />
       </Button>
-      <Button type="button" variant="ghost" size="icon" className="rounded" aria-label="Italic">
-        <Italic size={18} />
+      <Button type="button" variant="ghost" size="icon" className="rounded p-1 sm:p-2" aria-label="Italic">
+        <Italic size={15} />
       </Button>
-      <Button type="button" variant="ghost" size="icon" className="rounded" aria-label="List">
-        <List size={18} />
+      <Button type="button" variant="ghost" size="icon" className="rounded p-1 sm:p-2" aria-label="List">
+        <List size={15} />
       </Button>
-      <Button type="button" variant="ghost" size="icon" className="rounded" aria-label="Link">
-        <LinkIcon size={18} />
+      <Button type="button" variant="ghost" size="icon" className="rounded p-1 sm:p-2" aria-label="Link">
+        <LinkIcon size={15} />
       </Button>
-    </>
+    </div>
   );
 
   return (
@@ -141,14 +141,14 @@ export const ChatWindow = ({ conversationId, isMobile, onBack }: Props) => {
             <TabsList className="flex bg-black/5 p-0.5" style={{ borderRadius: 5 }}>
               <TabsTrigger
                 value="reply"
-                className="text-xs px-3 py-1"
+                className="text-xs px-2 py-1"
                 style={{ borderRadius: 5 }}
               >
                 Your Reply
               </TabsTrigger>
               <TabsTrigger
                 value="ai"
-                className="text-xs px-3 py-1"
+                className="text-xs px-2 py-1"
                 style={{ borderRadius: 5 }}
               >
                 Use AI
@@ -156,7 +156,7 @@ export const ChatWindow = ({ conversationId, isMobile, onBack }: Props) => {
             </TabsList>
           </Tabs>
           {/* Rich text icons */}
-          <div className="flex gap-1 flex-1 justify-center min-w-[120px]">
+          <div className="flex-1 flex justify-center min-w-[100px]">
             {richIcons}
           </div>
           {/* Bot flow trigger */}
@@ -169,8 +169,10 @@ export const ChatWindow = ({ conversationId, isMobile, onBack }: Props) => {
                 className="flex items-center gap-1 text-xs px-2"
                 aria-label="Trigger Bot Flow"
               >
-                <Bot size={16} className="mr-1" />
-                {selectedFlow ? botFlows.find(f => f.value === selectedFlow)?.label : "Bot Flow"}
+                <Bot size={15} className="mr-1" />
+                <span className="hidden sm:inline">
+                  {selectedFlow ? botFlows.find(f => f.value === selectedFlow)?.label : "Bot Flow"}
+                </span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-40 p-0">
@@ -190,9 +192,9 @@ export const ChatWindow = ({ conversationId, isMobile, onBack }: Props) => {
             </PopoverContent>
           </Popover>
         </div>
-        {/* Upload and emoji row */}
-        <div className="flex items-center gap-2 px-2 pb-1">
-          <label className="relative">
+        {/* Typing area with + and emoji icons before input */}
+        <div className="flex items-center gap-1 px-2 pb-2">
+          <label className="relative flex-shrink-0">
             <Button
               type="button"
               variant="ghost"
@@ -211,19 +213,15 @@ export const ChatWindow = ({ conversationId, isMobile, onBack }: Props) => {
               onClick={e => e.stopPropagation()}
             />
           </label>
-          <div className="flex-1" />
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="rounded"
+            className="rounded flex-shrink-0"
             aria-label="Emoji"
           >
             <Smile size={20} />
           </Button>
-        </div>
-        {/* Typing area */}
-        <div className="flex items-center gap-2 px-2 pb-2">
           <Input
             placeholder="Type in your message..."
             className="flex-1 bg-black/5 border-none text-black"
