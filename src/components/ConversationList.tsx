@@ -103,7 +103,19 @@ export const ConversationList = ({ selectedId, onSelect, isMobile }: Props) => {
         <span className="text-xs text-black/40">{conversations.length}</span>
       </div>
       <div className="flex flex-col gap-2 p-2">
-        <div className="flex items-center overflow-x-auto whitespace-nowrap gap-2 scrollbar-thin scrollbar-thumb-black/10 scrollbar-track-transparent">
+        <Input
+          placeholder="Search for messages"
+          className="bg-black/5 border-none text-black"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <div
+          className="flex items-center overflow-x-auto whitespace-nowrap gap-2 scrollbar-none"
+          style={{
+            msOverflowStyle: "none",
+            scrollbarWidth: "none",
+          }}
+        >
           {FILTERS.map((f) => (
             <Button
               key={f.value}
@@ -121,12 +133,13 @@ export const ConversationList = ({ selectedId, onSelect, isMobile }: Props) => {
             </Badge>
           )}
         </div>
-        <Input
-          placeholder="Search for messages"
-          className="bg-black/5 border-none text-black"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+        <style>
+          {`
+            .scrollbar-none::-webkit-scrollbar {
+              display: none;
+            }
+          `}
+        </style>
       </div>
       <ScrollArea className="flex-1">
         <ul className="px-2 pb-4">
