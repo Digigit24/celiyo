@@ -1,131 +1,100 @@
-import { useState, useRef } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRef, useEffect } from "react";
+import { Send, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { Bold, Italic, Link2, Smile, Plus, Bot } from "lucide-react";
+import { Input } from "@/components/ui/input";
+
+const messagesData: Record<string, Array<{ from: "me" | "them"; text: string; time: string }>> = {
+  "1": [
+    { from: "them", text: "I didn’t like it", time: "3:30 PM" },
+    { from: "me", text: "Sorry to hear that! Can you tell me more?", time: "3:31 PM" },
+  ],
+  "2": [
+    { from: "me", text: "Send it 🏀", time: "3:30 PM" },
+    { from: "them", text: "Here you go!", time: "3:31 PM" },
+  ],
+  "3": [
+    { from: "them", text: "I am free now, if you can do the...", time: "3:30 PM" },
+    { from: "me", text: "Sure, let's do it!", time: "3:31 PM" },
+  ],
+  "4": [
+    { from: "them", text: "Where should we go now?", time: "3:30 PM" },
+    { from: "me", text: "Let's decide together.", time: "3:31 PM" },
+  ],
+  "5": [
+    { from: "them", text: "Good luck with everything", time: "3:30 PM" },
+    { from: "me", text: "Thank you!", time: "3:31 PM" },
+  ],
+};
 
 type Props = {
   conversationId: string;
+  isMobile?: boolean;
+  onBack?: () => void;
 };
 
-const botFlows = [
-  { label: "Welcome Flow", value: "welcome" },
-  { label: "FAQ Flow", value: "faq" },
-  { label: "Feedback Flow", value: "feedback" },
-];
+export const ChatWindow = ({ conversationId, isMobile, onBack }: Props) => {
+  const messages = messagesData[conversationId] || [];
+  const endRef = useRef<HTMLDivElement>(null);
 
-export const ChatWindow = ({ conversationId }: Props) => {
-  const [tab, setTab] = useState("reply");
-  const [message, setMessage] = useState("");
-  const [selectedFlow, setSelectedFlow] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileClick = () => {
-    fileInputRef.current?.click();
-  };
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [conversationId, messages.length]);
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      {/* Header */}
-      <div className="flex flex-col border-b border-black/10 px-4 pt-4 pb-2">
-        <div className="flex items-center gap-4">
-          {/* Tabs */}
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="bg-black/5 p-1" style={{ borderRadius: 5 }}>
-              <TabsTrigger value="reply" className="text-xs px-3 py-1" style={{ borderRadius: 5 }}>
-                Reply
-              </TabsTrigger>
-              <TabsTrigger value="ai" className="text-xs px-3 py-1" style={{ borderRadius: 5 }}>
-                Use AI
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          {/* Rich text actions */}
-          <div className="flex items-center gap-2 ml-4">
-            <Button variant="ghost" size="icon" className="h-8 w-8" tabIndex={-1}>
-              <Bold size={16} />
+    <section className="flex flex-col flex-1 min-w-0 bg-white min-h-screen">
+      <div className="flex items-center justify-between h-16 border-b border-black/10 px-4">
+        <div className="flex items-center gap-2">
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mr-2"
+              onClick={onBack}
+              aria-label="Back"
+            >
+              <ArrowLeft size={20} />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" tabIndex={-1}>
-              <Italic size={16} />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" tabIndex={-1}>
-              <Link2 size={16} />
-            </Button>
-          </div>
-          {/* Bot trigger */}
-          <div className="ml-auto">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="flex items-center gap-1" style={{ borderRadius: 5 }}>
-                  <Bot size={16} />
-                  {selectedFlow ? botFlows.find(f => f.value === selectedFlow)?.label : "Trigger Bot"}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {botFlows.map(flow => (
-                  <DropdownMenuItem
-                    key={flow.value}
-                    onClick={() => setSelectedFlow(flow.value)}
-                  >
-                    {flow.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          )}
+          <span className="font-semibold text-lg">Chat</span>
         </div>
-      </div>
-      {/* Chat area (messages) */}
-      <div className="flex-1 overflow-y-auto px-4 py-2">
-        {/* ...messages would go here... */}
-        <div className="text-center text-black/30 text-xs mt-8">No messages yet.</div>
-      </div>
-      {/* File upload and emoji row */}
-      <div className="flex items-center gap-2 px-4 pb-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={handleFileClick}
-          tabIndex={-1}
-        >
-          <Plus size={18} />
-        </Button>
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          multiple
-        />
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          tabIndex={-1}
-        >
-          <Smile size={18} />
+        <Button variant="outline" className="border-black/10 text-black px-4 py-1 rounded-full text-xs font-medium">
+          Start a Call
         </Button>
       </div>
-      {/* Typing area */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`flex ${msg.from === "me" ? "justify-end" : "justify-start"}`}
+          >
+            <div
+              className={`rounded-lg px-4 py-2 max-w-xs text-sm ${
+                msg.from === "me"
+                  ? "bg-black text-white ml-8"
+                  : "bg-black/5 text-black mr-8"
+              }`}
+            >
+              {msg.text}
+              <div className="text-[10px] text-black/40 mt-1 text-right">{msg.time}</div>
+            </div>
+          </div>
+        ))}
+        <div ref={endRef} />
+      </div>
       <form
         className="flex items-center gap-2 border-t border-black/10 px-4 py-4"
         onSubmit={e => {
           e.preventDefault();
-          if (message.trim()) {
-            setMessage("");
-          }
         }}
       >
-        <input
-          className="flex-1 bg-black/5 rounded px-3 py-2 border-none outline-none text-sm"
+        <Input
           placeholder="Type your message..."
-          value={message}
-          onChange={e => setMessage(e.target.value)}
+          className="flex-1 bg-black/5 border-none text-black"
         />
-        <Button type="submit" className="ml-2" disabled={!message.trim()}>
-          Send
+        <Button type="submit" className="bg-black text-white rounded-full px-4 py-2">
+          <Send size={16} />
         </Button>
       </form>
-    </div>
+    </section>
   );
 };
