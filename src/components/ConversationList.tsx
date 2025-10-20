@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Phone, MessageCircle, Home } from "lucide-react";
 
 const conversations = [
@@ -48,14 +49,6 @@ const conversations = [
   },
 ];
 
-const FILTERS = [
-  { label: "All", value: "all" },
-  { label: "Unread", value: "unread" },
-  { label: "WhatsApp", value: "whatsapp" },
-  { label: "Instagram", value: "instagram" },
-  { label: "Website", value: "website" },
-];
-
 const channelIcon = (channel: string) => {
   switch (channel) {
     case "whatsapp":
@@ -76,15 +69,15 @@ type Props = {
 };
 
 export const ConversationList = ({ selectedId, onSelect, isMobile }: Props) => {
-  const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState("all");
 
-  // Filter conversations
+  // Filter conversations by tab
   let filtered = conversations;
-  if (filter === "unread") {
-    filtered = filtered.filter((c) => c.unread);
-  } else if (filter !== "all") {
-    filtered = filtered.filter((c) => c.channel === filter);
+  if (tab === "mine") {
+    filtered = filtered.filter((c) => parseInt(c.id) % 2 === 0); // Example: "Mine" = even IDs
+  } else if (tab === "unassigned") {
+    filtered = filtered.filter((c) => parseInt(c.id) % 2 !== 0); // Example: "Unassigned" = odd IDs
   }
   if (search.trim()) {
     filtered = filtered.filter(
@@ -94,7 +87,7 @@ export const ConversationList = ({ selectedId, onSelect, isMobile }: Props) => {
     );
   }
 
-  const unreadCount = conversations.filter((c) => c.unread).length;
+  const unreadCount = filtered.filter((c) => c.unread).length;
 
   return (
     <aside className={`flex flex-col ${isMobile ? "w-full" : "w-72"} border-r border-black/10 bg-white min-h-screen`}>
@@ -109,37 +102,36 @@ export const ConversationList = ({ selectedId, onSelect, isMobile }: Props) => {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-        <div
-          className="flex items-center overflow-x-auto whitespace-nowrap gap-2 scrollbar-none"
-          style={{
-            msOverflowStyle: "none",
-            scrollbarWidth: "none",
-          }}
-        >
-          {FILTERS.map((f) => (
-            <Button
-              key={f.value}
-              size="sm"
-              variant={filter === f.value ? "default" : "outline"}
-              className={`rounded-full px-3 py-1 text-xs ${filter === f.value ? "bg-black text-white" : "bg-white text-black border-black/10"} flex-shrink-0`}
-              onClick={() => setFilter(f.value)}
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="w-full flex bg-black/5 p-1" style={{ borderRadius: 5 }}>
+            <TabsTrigger
+              value="all"
+              className="flex-1 text-xs px-3 py-1"
+              style={{ borderRadius: 5 }}
             >
-              {f.label}
-            </Button>
-          ))}
-          {unreadCount > 0 && (
-            <Badge className="ml-2 bg-black text-white rounded-full px-2 py-1 text-xs flex-shrink-0">
-              {unreadCount} Unread
-            </Badge>
-          )}
-        </div>
-        <style>
-          {`
-            .scrollbar-none::-webkit-scrollbar {
-              display: none;
-            }
-          `}
-        </style>
+              All
+            </TabsTrigger>
+            <TabsTrigger
+              value="mine"
+              className="flex-1 text-xs px-3 py-1"
+              style={{ borderRadius: 5 }}
+            >
+              Mine
+            </TabsTrigger>
+            <TabsTrigger
+              value="unassigned"
+              className="flex-1 text-xs px-3 py-1"
+              style={{ borderRadius: 5 }}
+            >
+              Unassigned
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        {unreadCount > 0 && (
+          <Badge className="bg-black text-white rounded-full px-2 py-1 text-xs self-end">
+            {unreadCount} Unread
+          </Badge>
+        )}
       </div>
       <ScrollArea className="flex-1">
         <ul className="px-2 pb-4">
