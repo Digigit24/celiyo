@@ -1,7 +1,21 @@
-import { useRef, useEffect } from "react";
-import { Send, ArrowLeft } from "lucide-react";
+import { useRef, useEffect, useState } from "react";
+import {
+  Send,
+  ArrowLeft,
+  Bold,
+  Italic,
+  List,
+  Link as LinkIcon,
+  Smile,
+  Plus,
+  Mic,
+  Bot
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 const messagesData: Record<string, Array<{ from: "me" | "them"; text: string; time: string }>> = {
   "1": [
@@ -32,16 +46,44 @@ type Props = {
   onBack?: () => void;
 };
 
+const botFlows = [
+  { label: "FAQ Bot", value: "faq" },
+  { label: "Order Status", value: "order" },
+  { label: "Custom Flow", value: "custom" },
+];
+
 export const ChatWindow = ({ conversationId, isMobile, onBack }: Props) => {
   const messages = messagesData[conversationId] || [];
   const endRef = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<"reply" | "ai">("reply");
+  const [input, setInput] = useState("");
+  const [selectedFlow, setSelectedFlow] = useState<string | null>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversationId, messages.length]);
 
+  // Responsive: collapse icons into a menu on mobile if needed
+  const richIcons = (
+    <>
+      <Button type="button" variant="ghost" size="icon" className="rounded" aria-label="Bold">
+        <Bold size={18} />
+      </Button>
+      <Button type="button" variant="ghost" size="icon" className="rounded" aria-label="Italic">
+        <Italic size={18} />
+      </Button>
+      <Button type="button" variant="ghost" size="icon" className="rounded" aria-label="List">
+        <List size={18} />
+      </Button>
+      <Button type="button" variant="ghost" size="icon" className="rounded" aria-label="Link">
+        <LinkIcon size={18} />
+      </Button>
+    </>
+  );
+
   return (
     <section className="flex flex-col flex-1 min-w-0 bg-white min-h-screen">
+      {/* Chat header */}
       <div className="flex items-center justify-between h-16 border-b border-black/10 px-4">
         <div className="flex items-center gap-2">
           {isMobile && (
@@ -61,6 +103,8 @@ export const ChatWindow = ({ conversationId, isMobile, onBack }: Props) => {
           Start a Call
         </Button>
       </div>
+
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.map((msg, idx) => (
           <div
@@ -68,11 +112,12 @@ export const ChatWindow = ({ conversationId, isMobile, onBack }: Props) => {
             className={`flex ${msg.from === "me" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`rounded-lg px-4 py-2 max-w-xs text-sm ${
+              className={cn(
+                "rounded-lg px-4 py-2 max-w-xs text-sm",
                 msg.from === "me"
                   ? "bg-black text-white ml-8"
                   : "bg-black/5 text-black mr-8"
-              }`}
+              )}
             >
               {msg.text}
               <div className="text-[10px] text-black/40 mt-1 text-right">{msg.time}</div>
@@ -81,19 +126,110 @@ export const ChatWindow = ({ conversationId, isMobile, onBack }: Props) => {
         ))}
         <div ref={endRef} />
       </div>
+
+      {/* Chat input area */}
       <form
-        className="flex items-center gap-2 border-t border-black/10 px-4 py-4"
+        className="flex flex-col gap-0 border-t border-black/10 bg-white"
         onSubmit={e => {
           e.preventDefault();
         }}
       >
-        <Input
-          placeholder="Type your message..."
-          className="flex-1 bg-black/5 border-none text-black"
-        />
-        <Button type="submit" className="bg-black text-white rounded-full px-4 py-2">
-          <Send size={16} />
-        </Button>
+        {/* Input header: Tabs, rich icons, bot flow */}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-2 pt-2 pb-1">
+          {/* Tabs */}
+          <Tabs value={tab} onValueChange={v => setTab(v as "reply" | "ai")}>
+            <TabsList className="flex bg-black/5 p-0.5" style={{ borderRadius: 5 }}>
+              <TabsTrigger
+                value="reply"
+                className="text-xs px-3 py-1"
+                style={{ borderRadius: 5 }}
+              >
+                Your Reply
+              </TabsTrigger>
+              <TabsTrigger
+                value="ai"
+                className="text-xs px-3 py-1"
+                style={{ borderRadius: 5 }}
+              >
+                Use AI
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {/* Rich text icons */}
+          <div className="flex gap-1 flex-1 justify-center min-w-[120px]">
+            {richIcons}
+          </div>
+          {/* Bot flow trigger */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-1 text-xs px-2"
+                aria-label="Trigger Bot Flow"
+              >
+                <Bot size={16} className="mr-1" />
+                {selectedFlow ? botFlows.find(f => f.value === selectedFlow)?.label : "Bot Flow"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-40 p-0">
+              <ul>
+                {botFlows.map(flow => (
+                  <li key={flow.value}>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start px-3 py-2 text-sm"
+                      onClick={() => setSelectedFlow(flow.value)}
+                    >
+                      {flow.label}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </PopoverContent>
+          </Popover>
+        </div>
+        {/* Upload and emoji row */}
+        <div className="flex items-center gap-2 px-2 pb-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="rounded"
+            aria-label="Upload"
+          >
+            <Plus size={20} />
+            <input
+              type="file"
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              tabIndex={-1}
+              aria-label="Upload file"
+            />
+          </Button>
+          <div className="flex-1" />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="rounded"
+            aria-label="Emoji"
+          >
+            <Smile size={20} />
+          </Button>
+        </div>
+        {/* Typing area */}
+        <div className="flex items-center gap-2 px-2 pb-2">
+          <Input
+            placeholder="Type in your message..."
+            className="flex-1 bg-black/5 border-none text-black"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+          />
+          <Button type="submit" className="bg-black text-white rounded-full px-4 py-2" aria-label="Send">
+            {isMobile ? <Mic size={16} /> : <Send size={16} />}
+          </Button>
+        </div>
       </form>
     </section>
   );
