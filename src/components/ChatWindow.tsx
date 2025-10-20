@@ -192,21 +192,25 @@ export const ChatWindow = ({ conversationId, isMobile, onBack }: Props) => {
         </div>
         {/* Upload and emoji row */}
         <div className="flex items-center gap-2 px-2 pb-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="rounded"
-            aria-label="Upload"
-          >
-            <Plus size={20} />
+          <label className="relative">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="rounded"
+              aria-label="Upload"
+              tabIndex={-1}
+            >
+              <Plus size={20} />
+            </Button>
             <input
               type="file"
               className="absolute inset-0 opacity-0 cursor-pointer"
               tabIndex={-1}
-              aria-label="Upload file"
+              style={{ width: "100%", height: "100%" }}
+              onClick={e => e.stopPropagation()}
             />
-          </Button>
+          </label>
           <div className="flex-1" />
           <Button
             type="button"
