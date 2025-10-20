@@ -103,20 +103,20 @@ export const ConversationList = ({ selectedId, onSelect, isMobile }: Props) => {
         <span className="text-xs text-black/40">{conversations.length}</span>
       </div>
       <div className="flex flex-col gap-2 p-2">
-        <div className="flex flex-wrap gap-2 items-center">
+        <div className="flex items-center overflow-x-auto whitespace-nowrap gap-2 scrollbar-thin scrollbar-thumb-black/10 scrollbar-track-transparent">
           {FILTERS.map((f) => (
             <Button
               key={f.value}
               size="sm"
               variant={filter === f.value ? "default" : "outline"}
-              className={`rounded-full px-3 py-1 text-xs ${filter === f.value ? "bg-black text-white" : "bg-white text-black border-black/10"}`}
+              className={`rounded-full px-3 py-1 text-xs ${filter === f.value ? "bg-black text-white" : "bg-white text-black border-black/10"} flex-shrink-0`}
               onClick={() => setFilter(f.value)}
             >
               {f.label}
             </Button>
           ))}
           {unreadCount > 0 && (
-            <Badge className="ml-auto bg-black text-white rounded-full px-2 py-1 text-xs">
+            <Badge className="ml-2 bg-black text-white rounded-full px-2 py-1 text-xs flex-shrink-0">
               {unreadCount} Unread
             </Badge>
           )}
