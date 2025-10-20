@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Phone, MessageCircle, Home } from "lucide-react";
 
 const conversations = [
   {
@@ -44,6 +45,19 @@ const conversations = [
   },
 ];
 
+const channelIcon = (channel: string) => {
+  switch (channel) {
+    case "whatsapp":
+      return <Phone size={16} className="text-black/40" />;
+    case "instagram":
+      return <MessageCircle size={16} className="text-black/40" />;
+    case "website":
+      return <Home size={16} className="text-black/40" />;
+    default:
+      return null;
+  }
+};
+
 type Props = {
   selectedId: string;
   onSelect: (id: string) => void;
@@ -70,7 +84,10 @@ export const ConversationList = ({ selectedId, onSelect, isMobile }: Props) => (
             onClick={() => onSelect(c.id)}
           >
             <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">{c.name}</span>
+              <div className="flex items-center gap-2">
+                {channelIcon(c.channel)}
+                <span className="font-medium text-sm">{c.name}</span>
+              </div>
               <span className="text-xs text-black/40">{c.time}</span>
             </div>
             <span className="text-xs text-black/70 truncate">{c.lastMessage}</span>
