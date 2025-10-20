@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { Send } from "lucide-react";
+import { Send, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -28,9 +28,11 @@ const messagesData: Record<string, Array<{ from: "me" | "them"; text: string; ti
 
 type Props = {
   conversationId: string;
+  isMobile?: boolean;
+  onBack?: () => void;
 };
 
-export const ChatWindow = ({ conversationId }: Props) => {
+export const ChatWindow = ({ conversationId, isMobile, onBack }: Props) => {
   const messages = messagesData[conversationId] || [];
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -40,15 +42,26 @@ export const ChatWindow = ({ conversationId }: Props) => {
 
   return (
     <section className="flex flex-col flex-1 min-w-0 bg-white min-h-screen">
-      <div className="flex items-center justify-between h-16 border-b border-black/10 px-6">
-        <div>
+      <div className="flex items-center justify-between h-16 border-b border-black/10 px-4">
+        <div className="flex items-center gap-2">
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mr-2"
+              onClick={onBack}
+              aria-label="Back"
+            >
+              <ArrowLeft size={20} />
+            </Button>
+          )}
           <span className="font-semibold text-lg">Chat</span>
         </div>
         <Button variant="outline" className="border-black/10 text-black px-4 py-1 rounded-full text-xs font-medium">
           Start a Call
         </Button>
       </div>
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.map((msg, idx) => (
           <div
             key={idx}
@@ -69,7 +82,7 @@ export const ChatWindow = ({ conversationId }: Props) => {
         <div ref={endRef} />
       </div>
       <form
-        className="flex items-center gap-2 border-t border-black/10 px-6 py-4"
+        className="flex items-center gap-2 border-t border-black/10 px-4 py-4"
         onSubmit={e => {
           e.preventDefault();
         }}

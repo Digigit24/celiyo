@@ -47,10 +47,11 @@ const conversations = [
 type Props = {
   selectedId: string;
   onSelect: (id: string) => void;
+  isMobile?: boolean;
 };
 
-export const ConversationList = ({ selectedId, onSelect }: Props) => (
-  <aside className="flex flex-col w-72 border-r border-black/10 bg-white min-h-screen">
+export const ConversationList = ({ selectedId, onSelect, isMobile }: Props) => (
+  <aside className={`flex flex-col ${isMobile ? "w-full" : "w-72"} border-r border-black/10 bg-white min-h-screen`}>
     <div className="flex items-center justify-between h-16 border-b border-black/10 px-4">
       <span className="font-semibold text-lg">Conversations</span>
       <span className="text-xs text-black/40">{conversations.length}</span>
