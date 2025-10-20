@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Phone, MessageCircle, Home } from "lucide-react";
 
@@ -87,8 +86,6 @@ export const ConversationList = ({ selectedId, onSelect, isMobile }: Props) => {
     );
   }
 
-  const unreadCount = filtered.filter((c) => c.unread).length;
-
   return (
     <aside className={`flex flex-col ${isMobile ? "w-full" : "w-72"} border-r border-black/10 bg-white min-h-screen`}>
       <div className="flex items-center justify-between h-16 border-b border-black/10 px-4">
@@ -127,11 +124,6 @@ export const ConversationList = ({ selectedId, onSelect, isMobile }: Props) => {
             </TabsTrigger>
           </TabsList>
         </Tabs>
-        {unreadCount > 0 && (
-          <Badge className="bg-black text-white rounded-full px-2 py-1 text-xs self-end">
-            {unreadCount} Unread
-          </Badge>
-        )}
       </div>
       <ScrollArea className="flex-1">
         <ul className="px-2 pb-4">
