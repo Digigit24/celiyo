@@ -19,6 +19,7 @@ import OPD from "./pages/OPD";
 import NotFound from "./pages/NotFound";
 import DoctorsListPage from "@/pages/masters/DoctorsListPage";
 import SpecialtiesListPage from "./pages/masters/SpecialtyListPage";
+import PatientsListPage from "./pages/masters/Patientslistpage";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const AppLayout = () => {
             {/* Masters Routes */}
             <Route path="/masters/doctors" element={<DoctorsListPage />} />
             <Route path="/masters/specialties" element={<SpecialtiesListPage />} />
+            <Route path="/masters/patients" element={<PatientsListPage />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
