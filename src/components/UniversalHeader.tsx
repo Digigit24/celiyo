@@ -57,15 +57,9 @@ export const UniversalHeader = () => {
               className="flex items-center gap-2 rounded-full px-3"
             >
               <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                {user?.profile_picture ? (
-                  <img 
-                    src={user.profile_picture} 
-                    alt="Profile" 
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                ) : (
+                
                   <User size={18} className="text-gray-600" />
-                )}
+                
               </div>
               <span className="hidden md:inline text-sm">
                 {user?.first_name || 'User'}

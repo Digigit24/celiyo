@@ -18,6 +18,7 @@ import Inbox from "./pages/Inbox";
 import OPD from "./pages/OPD";
 import NotFound from "./pages/NotFound";
 import DoctorsListPage from "@/pages/masters/DoctorsListPage";
+import SpecialtiesListPage from "./pages/masters/SpecialtyListPage";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const AppLayout = () => {
             
             {/* Masters Routes */}
             <Route path="/masters/doctors" element={<DoctorsListPage />} />
+            <Route path="/masters/specialties" element={<SpecialtiesListPage />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
