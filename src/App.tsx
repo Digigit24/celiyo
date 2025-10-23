@@ -1,4 +1,6 @@
+// src/App.tsx
 import { useState } from "react";
+import { SWRConfig } from "swr";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,13 +10,14 @@ import { UniversalSidebar } from "@/components/UniversalSidebar";
 import { UniversalHeader } from "@/components/UniversalHeader";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { swrConfig } from "@/lib/swrConfig";
+import { authService } from "@/services/authService";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Inbox from "./pages/Inbox";
 import OPD from "./pages/OPD";
 import NotFound from "./pages/NotFound";
 import DoctorsListPage from "@/pages/masters/DoctorsListPage";
-import { authService } from "@/services/authService";
 
 const queryClient = new QueryClient();
 
@@ -68,33 +71,35 @@ const App = () => {
   const isAuthenticated = authService.isAuthenticated();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Public Routes */}
-            <Route 
-              path="/login" 
-              element={
-                isAuthenticated ? <Navigate to="/" replace /> : <Login />
-              } 
-            />
+    <SWRConfig value={swrConfig}>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Public Routes */}
+              <Route 
+                path="/login" 
+                element={
+                  isAuthenticated ? <Navigate to="/" replace /> : <Login />
+                } 
+              />
 
-            {/* Protected Routes */}
-            <Route
-              path="/*"
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+              {/* Protected Routes */}
+              <Route
+                path="/*"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </SWRConfig>
   );
 };
 

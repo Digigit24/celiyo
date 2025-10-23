@@ -60,6 +60,8 @@ export interface DoctorListParams {
   max_fee?: number;
   search?: string;
   page?: number;
+
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface DoctorCreateData {

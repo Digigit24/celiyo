@@ -1,6 +1,7 @@
 // ==================== API CONFIGURATION ====================
 // Complete HMS API endpoints configuration
 // Base URL: https://hms.dglinkup.com/api
+// src/lib/apiConfig.ts
 
 export const API_CONFIG = {
   BASE_URL: 'https://hms.dglinkup.com/api',

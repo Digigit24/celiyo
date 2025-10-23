@@ -1,148 +1,180 @@
-import apiClient from '@/api/client';
+// src/services/authService.ts
+import client, { tokenManager } from '@/lib/client';
 import { API_CONFIG } from '@/lib/apiConfig';
-import { LoginPayload, LoginResponse } from '@/types/authTypes';
+import { LoginPayload, User } from '@/types/authTypes';
 
-// Authentication Service
-export const authService = {
-  // Login user
-  login: async (payload: LoginPayload): Promise<LoginResponse> => {
+const USER_KEY = 'hms_user';
+
+export interface LoginResponse {
+  success: boolean;
+  data: {
+    token: string;
+    user: User;
+  };
+}
+
+export interface RegisterPayload extends LoginPayload {
+  username: string;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+  role: string;
+  password_confirm: string;
+  doctor_profile?: any;
+  patient_profile?: any;
+}
+
+class AuthService {
+  // Login
+  async login(payload: LoginPayload): Promise<User> {
     try {
-      const response = await apiClient.post<LoginResponse>(API_CONFIG.AUTH.LOGIN, payload);
-      const data = response.data;
-      
-      // Store token if provided (for token-based auth)
-      if (data.token || (data as any).access_token) {
-        localStorage.setItem('auth_token', data.token || (data as any).access_token || '');
-      }
-      
-      // Store user data
-      localStorage.setItem('user', JSON.stringify(data));
-      localStorage.setItem('isAuthenticated', 'true');
+      const response = await client.post<LoginResponse>(
+        API_CONFIG.AUTH.LOGIN,
+        payload
+      );
 
-      return data;
+      const { token, user } = response.data.data;
+
+      // Store token and user
+      tokenManager.setToken(token);
+      this.setUser(user);
+
+      return user;
     } catch (error: any) {
-      console.error('Login error:', error);
+      // Clear any stale data
+      this.clearAuth();
       
-      // Extract error message from axios error
-      let errorMessage = 'Login failed';
-      
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        
-        if (errorData.detail) {
-          errorMessage = errorData.detail;
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (errorData.error) {
-          errorMessage = errorData.error;
-        } else if (errorData.non_field_errors) {
-          errorMessage = errorData.non_field_errors[0];
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      throw new Error(errorMessage);
+      const message = error.response?.data?.error || 
+                     error.response?.data?.message || 
+                     'Login failed. Please check your credentials.';
+      throw new Error(message);
     }
-  },
+  }
 
-  // Logout user
-  logout: async () => {
+  // Register
+  async register(payload: RegisterPayload): Promise<User> {
     try {
-      // Call backend logout endpoint
-      await apiClient.post(API_CONFIG.AUTH.LOGOUT);
+      const response = await client.post<LoginResponse>(
+        API_CONFIG.AUTH.REGISTER,
+        payload
+      );
+
+      const { token, user } = response.data.data;
+
+      // Store token and user
+      tokenManager.setToken(token);
+      this.setUser(user);
+
+      return user;
+    } catch (error: any) {
+      const message = error.response?.data?.error || 
+                     error.response?.data?.message || 
+                     'Registration failed.';
+      throw new Error(message);
+    }
+  }
+
+  // Logout
+  async logout(): Promise<void> {
+    try {
+      // Call logout endpoint to invalidate token on server
+      await client.post(API_CONFIG.AUTH.LOGOUT);
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout API call failed:', error);
     } finally {
-      // Always clear local storage
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('isAuthenticated');
+      // Always clear local auth data
+      this.clearAuth();
     }
-  },
+  }
 
-  // Register user
-  register: async (payload: any): Promise<LoginResponse> => {
+  // Get current user from API
+  async getCurrentUser(): Promise<User | null> {
     try {
-      const response = await apiClient.post<LoginResponse>(API_CONFIG.AUTH.REGISTER, payload);
-      const data = response.data;
-      
-      // Store token if provided
-      if (data.token || (data as any).access_token) {
-        localStorage.setItem('auth_token', data.token || (data as any).access_token || '');
+      if (!this.isAuthenticated()) {
+        return null;
       }
-      
-      // Store user data
-      localStorage.setItem('user', JSON.stringify(data));
-      localStorage.setItem('isAuthenticated', 'true');
 
-      return data;
-    } catch (error: any) {
-      console.error('Registration error:', error);
-      
-      let errorMessage = 'Registration failed';
-      
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        
-        if (errorData.detail) {
-          errorMessage = errorData.detail;
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (errorData.error) {
-          errorMessage = errorData.error;
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      throw new Error(errorMessage);
-    }
-  },
+      const response = await client.get<{ success: boolean; data: User }>(
+        API_CONFIG.AUTH.ME
+      );
 
-  // Get current user
-  getCurrentUser: async (): Promise<any> => {
-    try {
-      const response = await apiClient.get(API_CONFIG.AUTH.ME);
-      return response.data.data;
+      const user = response.data.data;
+      this.setUser(user);
+      return user;
     } catch (error) {
-      console.error('Get current user error:', error);
-      throw error;
+      console.error('Failed to fetch current user:', error);
+      this.clearAuth();
+      return null;
     }
-  },
+  }
 
   // Change password
-  changePassword: async (oldPassword: string, newPassword: string, newPasswordConfirm: string): Promise<void> => {
+  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
     try {
-      await apiClient.put(API_CONFIG.AUTH.CHANGE_PASSWORD, {
-        old_password: oldPassword,
-        new_password: newPassword,
-        new_password_confirm: newPasswordConfirm,
-      });
-    } catch (error) {
-      console.error('Change password error:', error);
-      throw error;
+      const response = await client.post<{ success: boolean; data: { token: string } }>(
+        API_CONFIG.AUTH.CHANGE_PASSWORD,
+        {
+          old_password: oldPassword,
+          new_password: newPassword,
+          new_password_confirm: newPassword,
+        }
+      );
+
+      // Update token if returned
+      if (response.data.data?.token) {
+        tokenManager.setToken(response.data.data.token);
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.error || 
+                     error.response?.data?.message || 
+                     'Password change failed.';
+      throw new Error(message);
     }
-  },
+  }
 
-  // Get stored token
-  getToken: (): string | null => {
-    return localStorage.getItem('auth_token');
-  },
+  // Token methods
+  getToken(): string | null {
+    return tokenManager.getToken();
+  }
 
-  // Get stored user
-  getUser: (): LoginResponse | null => {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) return null;
+  setToken(token: string): void {
+    tokenManager.setToken(token);
+  }
+
+  removeToken(): void {
+    tokenManager.removeToken();
+  }
+
+  // User methods
+  getUser(): User | null {
+    const userJson = localStorage.getItem(USER_KEY);
+    if (!userJson) return null;
+    
     try {
-      return JSON.parse(userStr);
+      return JSON.parse(userJson);
     } catch {
       return null;
     }
-  },
+  }
+
+  setUser(user: User): void {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  }
+
+  removeUser(): void {
+    localStorage.removeItem(USER_KEY);
+  }
 
   // Check if user is authenticated
-  isAuthenticated: (): boolean => {
-    return localStorage.getItem('isAuthenticated') === 'true';
-  },
-};
+  isAuthenticated(): boolean {
+    return tokenManager.hasToken();
+  }
+
+  // Clear all auth data
+  clearAuth(): void {
+    this.removeToken();
+    this.removeUser();
+  }
+}
+
+export const authService = new AuthService();

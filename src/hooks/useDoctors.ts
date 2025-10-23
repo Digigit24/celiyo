@@ -1,59 +1,94 @@
+// src/hooks/useDoctors.ts
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
-import { API_CONFIG } from '@/lib/apiConfig';
-import type {
-  Doctor,
-  DoctorListParams,
-  DoctorCreateData,
-  DoctorUpdateData,
-  SetAvailabilityData,
-  Specialty,
-  DoctorAvailability,
-  PaginatedResponse,
-} from '@/types/doctor.types';
-import * as doctorService from '@/services/doctor.service';
+import { API_CONFIG, buildUrl, buildQueryString } from '@/lib/apiConfig';
+import { postFetcher, putFetcher, deleteFetcher } from '@/lib/swrConfig';
 
-// Hook to fetch all doctors with filters
-export const useDoctors = (params?: DoctorListParams) => {
-  const key = params 
-    ? [API_CONFIG.DOCTORS.PROFILES_LIST, params] 
-    : API_CONFIG.DOCTORS.PROFILES_LIST;
-  
-  const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<Doctor>>(
-    key,
-    () => doctorService.getDoctors(params),
+// Types
+export interface DoctorProfile {
+  id: number;
+  user: {
+    id: number;
+    email: string;
+    username: string;
+    first_name: string;
+    last_name: string;
+    phone: string;
+  };
+  medical_license_number: string;
+  license_issuing_authority: string;
+  license_issue_date: string;
+  license_expiry_date: string;
+  qualifications: string;
+  specialties: Array<{
+    id: number;
+    name: string;
+    description: string;
+  }>;
+  years_of_experience: number;
+  consultation_fee: string;
+  consultation_duration: number;
+  is_available_online: boolean;
+  is_available_offline: boolean;
+  is_verified: boolean;
+  languages_spoken: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DoctorsListParams {
+  search?: string;
+  specialty?: string;
+  is_available?: boolean;
+  page?: number;
+  page_size?: number;
+  [key: string]: string | number | boolean | undefined;
+}
+
+export interface DoctorsListResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: DoctorProfile[];
+}
+
+// Hook to fetch doctors list with filters
+export const useDoctors = (params?: DoctorsListParams) => {
+  const queryString = buildQueryString(params);
+  const url = `${API_CONFIG.DOCTORS.PROFILES_LIST}${queryString}`;
+
+  const { data, error, isLoading, mutate } = useSWR<DoctorsListResponse>(
+    url,
     {
       revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-      dedupingInterval: 10000,
+      keepPreviousData: true,
     }
   );
 
   return {
     doctors: data?.results || [],
-    count: data?.count || 0,
-    next: data?.next,
-    previous: data?.previous,
+    totalCount: data?.count || 0,
+    nextPage: data?.next,
+    previousPage: data?.previous,
     isLoading,
     error,
     mutate,
   };
 };
 
-// Hook to fetch single doctor by ID
-export const useDoctor = (id: number | null) => {
-  const key = id ? `${API_CONFIG.DOCTORS.PROFILE_DETAIL.replace(':id', String(id))}` : null;
-  
-  const { data, error, isLoading, mutate } = useSWR<Doctor>(
-    key,
-    () => doctorService.getDoctorById(id!),
+// Hook to fetch single doctor
+export const useDoctor = (id: number | string | null) => {
+  const url = id ? buildUrl(API_CONFIG.DOCTORS.PROFILE_DETAIL, { id }) : null;
+
+  const { data, error, isLoading, mutate } = useSWR<DoctorProfile>(
+    url,
     {
       revalidateOnFocus: false,
     }
   );
 
   return {
-    doctor: data,
+    doctor: data || null,
     isLoading,
     error,
     mutate,
@@ -63,10 +98,8 @@ export const useDoctor = (id: number | null) => {
 // Hook to create doctor
 export const useCreateDoctor = () => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.DOCTORS.REGISTER,
-    async (_key: string, { arg }: { arg: DoctorCreateData }) => {
-      return await doctorService.createDoctor(arg);
-    }
+    API_CONFIG.DOCTORS.PROFILE_CREATE,
+    postFetcher<DoctorProfile>
   );
 
   return {
@@ -77,14 +110,12 @@ export const useCreateDoctor = () => {
 };
 
 // Hook to update doctor
-export const useUpdateDoctor = (id: number) => {
-  const key = API_CONFIG.DOCTORS.PROFILE_UPDATE.replace(':id', String(id));
-  
+export const useUpdateDoctor = (id: number | string) => {
+  const url = buildUrl(API_CONFIG.DOCTORS.PROFILE_UPDATE, { id });
+
   const { trigger, isMutating, error } = useSWRMutation(
-    key,
-    async (_key: string, { arg }: { arg: DoctorUpdateData }) => {
-      return await doctorService.updateDoctor(id, arg);
-    }
+    url,
+    putFetcher<DoctorProfile>
   );
 
   return {
@@ -98,8 +129,9 @@ export const useUpdateDoctor = (id: number) => {
 export const useDeleteDoctor = () => {
   const { trigger, isMutating, error } = useSWRMutation(
     API_CONFIG.DOCTORS.PROFILE_DELETE,
-    async (_key: string, { arg }: { arg: number }) => {
-      return await doctorService.deleteDoctor(arg);
+    async (url: string, { arg }: { arg: { id: number | string } }) => {
+      const deleteUrl = buildUrl(url, { id: arg.id });
+      return deleteFetcher(deleteUrl);
     }
   );
 
@@ -110,129 +142,18 @@ export const useDeleteDoctor = () => {
   };
 };
 
-// Hook to fetch doctor availability
-export const useDoctorAvailability = (doctorId: number | null) => {
-  const key = doctorId 
-    ? API_CONFIG.DOCTORS.AVAILABILITY_LIST.replace(':id', String(doctorId))
-    : null;
-  
-  const { data, error, isLoading, mutate } = useSWR<DoctorAvailability[]>(
-    key,
-    () => doctorService.getDoctorAvailability(doctorId!),
-    {
-      revalidateOnFocus: false,
-    }
-  );
-
-  return {
-    availability: data || [],
-    isLoading,
-    error,
-    mutate,
-  };
-};
-
-// Hook to set doctor availability
-export const useSetDoctorAvailability = (doctorId: number) => {
-  const key = API_CONFIG.DOCTORS.AVAILABILITY_CREATE.replace(':id', String(doctorId));
-  
-  const { trigger, isMutating, error } = useSWRMutation(
-    key,
-    async (_key: string, { arg }: { arg: SetAvailabilityData }) => {
-      return await doctorService.setDoctorAvailability(doctorId, arg);
-    }
-  );
-
-  return {
-    setAvailability: trigger,
-    isSetting: isMutating,
-    error,
-  };
-};
-
-// Hook to fetch doctor statistics
-export const useDoctorStatistics = () => {
-  const { data, error, isLoading, mutate } = useSWR(
-    API_CONFIG.DOCTORS.STATISTICS,
-    doctorService.getDoctorStatistics,
-    {
-      revalidateOnFocus: false,
-    }
-  );
-
-  return {
-    statistics: data,
-    isLoading,
-    error,
-    mutate,
-  };
-};
-
-// Hook to fetch all specialties
+// Hook to fetch specialties
 export const useSpecialties = () => {
-  const { data, error, isLoading, mutate } = useSWR<Specialty[]>(
+  const { data, error, isLoading } = useSWR(
     API_CONFIG.DOCTORS.SPECIALTIES_LIST,
-    doctorService.getSpecialties,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 60000, // Cache for 1 minute
     }
   );
 
   return {
     specialties: data || [],
     isLoading,
-    error,
-    mutate,
-  };
-};
-
-// Hook to create specialty
-export const useCreateSpecialty = () => {
-  const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.DOCTORS.SPECIALTY_CREATE,
-    async (_key: string, { arg }: { arg: Partial<Specialty> }) => {
-      return await doctorService.createSpecialty(arg);
-    }
-  );
-
-  return {
-    createSpecialty: trigger,
-    isCreating: isMutating,
-    error,
-  };
-};
-
-// Hook to update specialty
-export const useUpdateSpecialty = (id: number) => {
-  const key = API_CONFIG.DOCTORS.SPECIALTY_UPDATE.replace(':id', String(id));
-  
-  const { trigger, isMutating, error } = useSWRMutation(
-    key,
-    async (_key: string, { arg }: { arg: Partial<Specialty> }) => {
-      return await doctorService.updateSpecialty(id, arg);
-    }
-  );
-
-  return {
-    updateSpecialty: trigger,
-    isUpdating: isMutating,
-    error,
-  };
-};
-
-// Hook to delete specialty
-export const useDeleteSpecialty = () => {
-  const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.DOCTORS.SPECIALTY_DELETE,
-    async (_key: string, { arg }: { arg: number }) => {
-      return await doctorService.deleteSpecialty(arg);
-    }
-  );
-
-  return {
-    deleteSpecialty: trigger,
-    isDeleting: isMutating,
     error,
   };
 };

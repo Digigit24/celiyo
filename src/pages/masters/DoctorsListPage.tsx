@@ -8,7 +8,7 @@ export default function DoctorsListPage() {
     search: '',
   });
 
-  const { doctors, count, isLoading, error } = useDoctors(filters);
+  const { doctors,  isLoading, error } = useDoctors(filters);
 
   if (isLoading) {
     return <div className="p-8">Loading doctors...</div>;
@@ -52,7 +52,7 @@ export default function DoctorsListPage() {
         </div>
 
         <div className="text-sm text-gray-600 mb-4">
-          Total Doctors: {count}
+          
         </div>
       </div>
 
@@ -60,7 +60,7 @@ export default function DoctorsListPage() {
       <div className="border rounded-lg p-6 bg-gray-50">
         <h2 className="text-lg font-semibold mb-4">Raw API Response:</h2>
         <pre className="bg-white p-4 rounded overflow-auto max-h-[600px] text-xs">
-          {JSON.stringify({ count, results: doctors }, null, 2)}
+          {JSON.stringify({  results: doctors }, null, 2)}
         </pre>
       </div>
     </div>
