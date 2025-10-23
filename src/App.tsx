@@ -5,13 +5,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { UniversalSidebar } from "@/components/UniversalSidebar";
 import { UniversalHeader } from "@/components/UniversalHeader";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { AuthProvider } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { swrConfig } from "@/lib/swrConfig";
-import { authService } from "@/services/authService";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Inbox from "./pages/Inbox";
@@ -20,6 +20,7 @@ import NotFound from "./pages/NotFound";
 import DoctorsListPage from "@/pages/masters/DoctorsListPage";
 import SpecialtiesListPage from "./pages/masters/SpecialtyListPage";
 import PatientsListPage from "./pages/masters/Patientslistpage";
+import AppointmentsListPage from "./pages/masters/AppointmentsListPage";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ const AppLayout = () => {
             <Route path="/masters/doctors" element={<DoctorsListPage />} />
             <Route path="/masters/specialties" element={<SpecialtiesListPage />} />
             <Route path="/masters/patients" element={<PatientsListPage />} />
+            <Route path="/masters/appointments" element={<AppointmentsListPage/>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
@@ -72,36 +74,31 @@ const AppLayout = () => {
 };
 
 const App = () => {
-  const isAuthenticated = authService.isAuthenticated();
-
   return (
     <SWRConfig value={swrConfig}>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Public Routes */}
-              <Route 
-                path="/login" 
-                element={
-                  isAuthenticated ? <Navigate to="/" replace /> : <Login />
-                } 
-              />
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/login" element={<Login />} />
 
-              {/* Protected Routes */}
-              <Route
-                path="/*"
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+                {/* Protected Routes */}
+                <Route
+                  path="/*"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
       </QueryClientProvider>
     </SWRConfig>
   );

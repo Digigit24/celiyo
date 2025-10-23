@@ -57,17 +57,27 @@ export const API_CONFIG = {
 
   // ==================== APPOINTMENTS ====================
   APPOINTMENTS: {
-    LIST: '/appointments/appointments/',
-    DETAIL: '/appointments/appointments/:id/',
-    CREATE: '/appointments/appointments/',
-    UPDATE: '/appointments/appointments/:id/',
-    DELETE: '/appointments/appointments/:id/',
-    CONFIRM: '/appointments/appointments/:id/confirm/',
-    CANCEL: '/appointments/appointments/:id/cancel/',
-    RESCHEDULE: '/appointments/appointments/:id/reschedule/',
-    AVAILABLE_SLOTS: '/appointments/appointments/available_slots/',
-    STATISTICS: '/appointments/appointments/statistics/',
+    LIST: '/appointments/',
+    DETAIL: '/appointments/:id/',
+    CREATE: '/appointments/',
+    UPDATE: '/appointments/:id/',
+    DELETE: '/appointments/:id/',
+    CHECK_IN: '/appointments/:id/check_in/',
+    START: '/appointments/:id/start/',
+    COMPLETE: '/appointments/:id/complete/',
+    TODAY: '/appointments/today/',
+    UPCOMING: '/appointments/upcoming/',
   },
+
+  // Appointment Types endpoints
+  APPOINTMENT_TYPES: {
+    LIST: '/appointments/types/',
+    DETAIL: '/appointments/types/:id/',
+    CREATE: '/appointments/types/',
+    UPDATE: '/appointments/types/:id/',
+    DELETE: '/appointments/types/:id/',
+  },
+
 
   // ==================== OPD VISITS ====================
   OPD: {

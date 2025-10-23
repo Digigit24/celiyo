@@ -1,21 +1,20 @@
-// src/components/ProtectedRoute.tsx
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
-export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
 
-  // Show loading spinner while checking authentication
+  // Show loading state while checking auth
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-900 mx-auto mb-4" />
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
@@ -24,9 +23,14 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
+    console.log('[ProtectedRoute] User not authenticated, redirecting to login');
+    
+    // Save intended destination for redirect after login
+    sessionStorage.setItem('redirectAfterLogin', location.pathname);
+    
     return <Navigate to="/login" replace />;
   }
 
-  // Render protected content
+  // User is authenticated, render children
   return <>{children}</>;
-};
+}

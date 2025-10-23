@@ -1,129 +1,190 @@
-import { useState } from "react";
-import { useAuth} from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 
-const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const { login, isLoading, error } = useAuth();
+export default function Login() {
+  const navigate = useNavigate();
+  const { login, isAuthenticated, isLoading, error, clearError } = useAuth();
+  
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      console.log('[Login] User already authenticated, redirecting...');
+      
+      // Check for saved redirect path
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectPath && redirectPath !== '/login') {
+        sessionStorage.removeItem('redirectAfterLogin');
+        navigate(redirectPath, { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+
+  // Clear errors when component unmounts
+  useEffect(() => {
+    return () => {
+      clearError();
+      setLocalError(null);
+    };
+  }, [clearError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    // Clear previous errors
+    clearError();
+    setLocalError(null);
+    
+    // Validate form
+    if (!formData.email.trim()) {
+      setLocalError('Username is required');
+      return;
+    }
+    
+    if (!formData.password) {
+      setLocalError('Password is required');
       return;
     }
     
     try {
-      await login({ email, password });
-    } catch (err) {
-      // Error is handled by useAuth hook
-      console.error("Login error:", err);
+      console.log('[Login] Submitting login form...');
+      
+      await login({
+        email: formData.email.trim(),
+        password: formData.password,
+      });
+      
+      // Success - useAuth will handle redirect
+      console.log('[Login] Login successful, redirecting...');
+    } catch (err: any) {
+      console.error('[Login] Login failed:', err);
+      setLocalError(err.message || 'Login failed. Please try again.');
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md">
-        {/* Logo and Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex rounded-full bg-black w-16 h-16 items-center justify-center text-white font-bold text-2xl mb-4">
-            C
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to your account to continue</p>
-        </div>
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear errors when user starts typing
+    if (localError || error) {
+      setLocalError(null);
+      clearError();
+    }
+  };
 
-        {/* Login Form */}
-        <div className="bg-white rounded-lg shadow-md p-8 border border-gray-200">
-          <form onSubmit={handleSubmit} className="space-y-6">
+  const displayError = localError || error;
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold text-center">Celiyo HMS</CardTitle>
+          <CardDescription className="text-center">
+            Hospital Management System
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Error Alert */}
+            {displayError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{displayError}</AlertDescription>
+              </Alert>
+            )}
+
             {/* Email Field */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
-                placeholder="doctor@hospital.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                placeholder="Enter your email"
+                value={formData.email}
+                onChange={handleInputChange}
                 disabled={isLoading}
-                className="w-full"
+                required
                 autoComplete="email"
+                autoFocus
               />
             </div>
 
             {/* Password Field */}
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-                className="w-full"
-                autoComplete="current-password"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
-            {/* Error Message */}
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
             {/* Submit Button */}
-            <Button
-              type="submit"
-              className="w-full bg-black text-white hover:bg-black/90"
-              disabled={isLoading || !email || !password}
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isLoading}
             >
               {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
+                <span className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Logging in...
+                </span>
               ) : (
-                "Sign In"
+                'Login'
               )}
             </Button>
           </form>
 
-          {/* Footer Links */}
-          <div className="mt-6 text-center">
-            <a
-              href="#"
-              className="text-sm text-gray-600 hover:text-gray-900"
-              onClick={(e) => e.preventDefault()}
-            >
-              Forgot password?
-            </a>
-          </div>
-        </div>
-
-        {/* Additional Info */}
-        <p className="text-center text-sm text-gray-600 mt-6">
-          Don't have an account?{" "}
-          <a
-            href="#"
-            className="text-black font-semibold hover:underline"
-            onClick={(e) => e.preventDefault()}
-          >
-            Contact Admin
-          </a>
-        </p>
-      </div>
+          {/* Debug Info (only in development) */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 p-3 bg-gray-100 rounded text-xs">
+              <p className="font-semibold mb-1">Debug Info:</p>
+              <p>Auth Status: {isAuthenticated ? '✅ Authenticated' : '❌ Not Authenticated'}</p>
+              <p>Loading: {isLoading ? 'Yes' : 'No'}</p>
+              <p>Token: {localStorage.getItem('auth_token') ? 'Present' : 'None'}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
-  );
-};
 
-export default Login;
+  );
+}
