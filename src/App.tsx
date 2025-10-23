@@ -21,6 +21,13 @@ import DoctorsListPage from "@/pages/masters/DoctorsListPage";
 import SpecialtiesListPage from "./pages/masters/SpecialtyListPage";
 import PatientsListPage from "./pages/masters/Patientslistpage";
 import AppointmentsListPage from "./pages/masters/AppointmentsListPage";
+import OpdVisitsListPage from "./pages/opd/OpdVisitsListPage";
+import OpdBillsListPage from "./pages/opd/OpdBillsListPage";
+import ClinicalNotesListPage from "./pages/opd/ClinicalNotesListPage";
+import VisitFindingsListPage from "./pages/opd/VisitFindingsListPage";
+import ProcedureMastersListPage from "./pages/opd/ProcedureMastersListPage";
+import ProcedurePackagesListPage from "./pages/opd/ProcedurePackagesListPage";
+import ProcedureBillsListPage from "./pages/opd/ProcedureBillsListPage";
 import { cn } from "@/lib/utils";
 
 const queryClient = new QueryClient();
@@ -67,6 +74,15 @@ const AppLayout = () => {
             <Route path="/" element={<Dashboard />} />
             <Route path="/inbox" element={<Inbox />} />
             <Route path="/opd" element={<OPD />} />
+
+            {/* OPD Routes */}
+            <Route path="/opd/visits" element={<OpdVisitsListPage />} />
+            <Route path="/opd/bills" element={<OpdBillsListPage />} />
+            <Route path="/opd/clinical-notes" element={<ClinicalNotesListPage />} />
+            <Route path="/opd/findings" element={<VisitFindingsListPage />} />
+            <Route path="/opd/procedures" element={<ProcedureMastersListPage />} />
+            <Route path="/opd/packages" element={<ProcedurePackagesListPage />} />
+            <Route path="/opd/procedure-bills" element={<ProcedureBillsListPage />} />
 
             {/* Masters Routes */}
             <Route path="/masters/doctors" element={<DoctorsListPage />} />

@@ -1,3 +1,4 @@
+// src/services/doctor.service.ts
 import apiClient from '@/api/client';
 import { API_CONFIG } from '@/lib/apiConfig';
 import type {
@@ -16,6 +17,31 @@ import type {
 export const getDoctors = async (params?: DoctorListParams): Promise<PaginatedResponse<Doctor>> => {
   const response = await apiClient.get(API_CONFIG.DOCTORS.PROFILES_LIST, { params });
   return response.data;
+};
+
+// Get doctors by specialty ID - with client-side filtering as fallback
+export const getDoctorsBySpecialty = async (specialtyId: number): Promise<Doctor[]> => {
+  try {
+    // First, try to get all doctors without filtering
+    const response = await apiClient.get<PaginatedResponse<Doctor>>(
+      API_CONFIG.DOCTORS.PROFILES_LIST,
+      { 
+        params: { 
+          page_size: 100 // Get a large number to ensure we get all doctors
+        } 
+      }
+    );
+    
+    // Filter client-side to find doctors with this specialty
+    const filteredDoctors = response.data.results.filter(doctor => 
+      doctor.specialties.some(specialty => specialty.id === specialtyId)
+    );
+    
+    return filteredDoctors;
+  } catch (error) {
+    console.error('Error fetching doctors by specialty:', error);
+    throw error;
+  }
 };
 
 // Get single doctor by ID

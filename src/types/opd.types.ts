@@ -82,6 +82,7 @@ export interface VisitListParams {
   visit_date?: string;
   search?: string;
   ordering?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface VisitCreateData {
@@ -154,6 +155,7 @@ export interface OPDBillListParams {
   bill_date?: string;
   search?: string;
   ordering?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface OPDBillCreateData {
@@ -206,6 +208,7 @@ export interface ProcedureMasterListParams {
   is_active?: boolean;
   search?: string;
   ordering?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface ProcedureMasterCreateData {
@@ -254,6 +257,7 @@ export interface ProcedurePackageListParams {
   is_active?: boolean;
   search?: string;
   ordering?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface ProcedurePackageCreateData {
@@ -319,6 +323,7 @@ export interface ProcedureBillListParams {
   bill_date?: string;
   search?: string;
   ordering?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface ProcedureBillItemCreateData {
@@ -385,6 +390,7 @@ export interface ClinicalNoteListParams {
   note_date?: string;
   search?: string;
   ordering?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface ClinicalNoteCreateData {
@@ -448,6 +454,7 @@ export interface VisitFindingListParams {
   finding_date?: string;
   search?: string;
   ordering?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface VisitFindingCreateData {
@@ -498,6 +505,7 @@ export interface VisitAttachmentListParams {
   file_type?: FileType;
   search?: string;
   ordering?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface VisitAttachmentCreateData {

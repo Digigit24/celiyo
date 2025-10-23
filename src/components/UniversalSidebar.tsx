@@ -14,6 +14,12 @@ import {
   X,
   PanelLeftClose,
   PanelLeft,
+  ClipboardPlus,
+  FileText,
+  Activity,
+  Package,
+  Receipt,
+  Microscope,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -51,7 +57,50 @@ const menuItems: MenuItem[] = [
     id: "opd",
     label: "OPD",
     icon: Stethoscope,
-    path: "/opd",
+    children: [
+      {
+        id: "opd-visits",
+        label: "Visits",
+        icon: ClipboardPlus,
+        path: "/opd/visits",
+      },
+      {
+        id: "opd-bills",
+        label: "OPD Bills",
+        icon: FileText,
+        path: "/opd/bills",
+      },
+      {
+        id: "clinical-notes",
+        label: "Clinical Notes",
+        icon: ClipboardList,
+        path: "/opd/clinical-notes",
+      },
+      {
+        id: "visit-findings",
+        label: "Visit Findings",
+        icon: Activity,
+        path: "/opd/findings",
+      },
+      {
+        id: "procedure-masters",
+        label: "Procedures",
+        icon: Microscope,
+        path: "/opd/procedures",
+      },
+      {
+        id: "procedure-packages",
+        label: "Packages",
+        icon: Package,
+        path: "/opd/packages",
+      },
+      {
+        id: "procedure-bills",
+        label: "Procedure Bills",
+        icon: Receipt,
+        path: "/opd/procedure-bills",
+      },
+    ],
   },
   {
     id: "masters",
@@ -100,7 +149,7 @@ export function UniversalSidebar({
   setMobileOpen,
 }: UniversalSidebarProps) {
   const location = useLocation();
-  const [openSections, setOpenSections] = useState<string[]>(["masters"]);
+  const [openSections, setOpenSections] = useState<string[]>(["masters", "opd"]);
 
   const toggleSection = (sectionId: string) => {
     setOpenSections((prev) =>

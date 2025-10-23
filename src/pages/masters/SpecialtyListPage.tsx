@@ -1,206 +1,223 @@
-// ==================== SPECIALTIES LIST PAGE ====================
-// Full filters implementation matching DoctorsListPage pattern
-
+// src/pages/specialties/SpecialtiesListPage.tsx
 import { useState } from 'react';
 import { useSpecialties } from '@/hooks/useDoctors';
-import type { SpecialtyListParams } from '@/types/specialty.types';
+import type { SpecialtyListParams, Specialty } from '@/types/doctor.types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Filter, Plus, Search, X, ArrowLeft } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-is-mobile';
+import SpecialtyFiltersDrawer from '@/components/SpecialtyFiltersDrawer';
+import SpecialtiesTable from '@/components/SpecialtiesTable';
+import SpecialtyFormDrawer from '@/components/SpecialtyFormDrawer';
 
 export default function SpecialtiesListPage() {
+  const isMobile = useIsMobile();
+  const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<SpecialtyListParams>({
+    is_active: true,
     search: '',
-    is_active: undefined,
-    department: '',
-    ordering: '',
+    page: 1,
   });
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
-  const { specialties, count, next, previous, isLoading, error, mutate } = useSpecialties(filters);
+  // Specialty Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedSpecialtyId, setSelectedSpecialtyId] = useState<number | null>(null);
+  const [drawerMode, setDrawerMode] = useState<'create' | 'edit' | 'view'>('view');
 
-  if (isLoading) {
+  const { specialties, count, isLoading, error, mutate } = useSpecialties(filters);
+
+  // Handle search
+  const handleSearch = () => {
+    setFilters({ ...filters, search: searchQuery, page: 1 });
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setFilters({ ...filters, search: '', page: 1 });
+  };
+
+  const handleApplyFilters = (newFilters: SpecialtyListParams) => {
+    setFilters(newFilters);
+    setIsFiltersOpen(false);
+  };
+
+  const handleResetFilters = () => {
+    const resetFilters: SpecialtyListParams = {
+      is_active: true,
+      search: searchQuery,
+      page: 1,
+    };
+    setFilters(resetFilters);
+    setIsFiltersOpen(false);
+  };
+
+  // Specialty Drawer handlers
+  const handleCreateSpecialty = () => {
+    setSelectedSpecialtyId(null);
+    setDrawerMode('create');
+    setDrawerOpen(true);
+  };
+
+  const handleEditSpecialty = (specialty: Specialty) => {
+    setSelectedSpecialtyId(specialty.id);
+    setDrawerMode('edit');
+    setDrawerOpen(true);
+  };
+
+  const handleViewSpecialty = (specialty: Specialty) => {
+    setSelectedSpecialtyId(specialty.id);
+    setDrawerMode('view');
+    setDrawerOpen(true);
+  };
+
+  const handleDrawerSuccess = () => {
+    mutate(); // Refresh the list
+  };
+
+  if (isLoading && specialties.length === 0) {
     return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold mb-4">Loading Specialties...</h1>
-        <div className="text-gray-600">Fetching data from API...</div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading specialties...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold mb-4 text-red-600">
-          Error Loading Specialties
-        </h1>
-        <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
-          <p className="font-semibold">Error Message:</p>
-          <p>{error.message || 'Failed to load specialties'}</p>
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 max-w-md">
+          <h3 className="text-lg font-semibold text-destructive mb-2">Error Loading Specialties</h3>
+          <p className="text-sm text-destructive/80">{error.message || 'Failed to fetch specialty data'}</p>
         </div>
-        <button
-          onClick={() => mutate()}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Retry
-        </button>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-4">Medical Specialties</h1>
-
-        {/* Filter Controls */}
-        <div className="mb-6 space-y-4">
-          <div className="flex gap-4 flex-wrap">
-            {/* Search Filter */}
+    <div className="flex flex-col h-screen bg-background">
+      {/* Header Section */}
+      <div className="border-b bg-background sticky top-0 z-10">
+        <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4">
+          <div className="flex items-center gap-3">
+            {isMobile && (
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            )}
             <div>
-              <label className="block text-sm font-medium mb-1">Search</label>
-              <input
-                type="text"
-                placeholder="Search by name, code, description..."
-                className="border px-4 py-2 rounded w-64"
-                value={filters.search || ''}
-                onChange={(e) =>
-                  setFilters({ ...filters, search: e.target.value })
-                }
-              />
-            </div>
-
-            {/* Department Filter */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Department</label>
-              <input
-                type="text"
-                placeholder="Filter by department"
-                className="border px-4 py-2 rounded w-48"
-                value={filters.department || ''}
-                onChange={(e) =>
-                  setFilters({ ...filters, department: e.target.value })
-                }
-              />
-            </div>
-
-            {/* Status Filter */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Status</label>
-              <select
-                className="border px-4 py-2 rounded"
-                value={
-                  filters.is_active === undefined
-                    ? ''
-                    : filters.is_active.toString()
-                }
-                onChange={(e) =>
-                  setFilters({
-                    ...filters,
-                    is_active:
-                      e.target.value === ''
-                        ? undefined
-                        : e.target.value === 'true',
-                  })
-                }
-              >
-                <option value="">All Status</option>
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
-              </select>
-            </div>
-
-            {/* Sort By Filter */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Sort By</label>
-              <select
-                className="border px-4 py-2 rounded"
-                value={filters.ordering || ''}
-                onChange={(e) =>
-                  setFilters({ ...filters, ordering: e.target.value })
-                }
-              >
-                <option value="">Default</option>
-                <option value="name">Name (A-Z)</option>
-                <option value="-name">Name (Z-A)</option>
-                <option value="code">Code (A-Z)</option>
-                <option value="-code">Code (Z-A)</option>
-                <option value="created_at">Oldest First</option>
-                <option value="-created_at">Newest First</option>
-              </select>
+              <h1 className="text-xl md:text-2xl font-semibold">Medical Specialties</h1>
+              <p className="text-xs md:text-sm text-muted-foreground">
+                {count} total specialties
+              </p>
             </div>
           </div>
 
-          {/* Filter Actions */}
+          <Button onClick={handleCreateSpecialty} size={isMobile ? 'sm' : 'default'}>
+            <Plus className="h-4 w-4 mr-2" />
+            {!isMobile && 'Add Specialty'}
+          </Button>
+        </div>
+
+        {/* Search & Filter Bar */}
+        <div className="px-4 pb-3 md:px-6 md:pb-4">
           <div className="flex gap-2">
-            <button
-              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-              onClick={() =>
-                setFilters({
-                  search: '',
-                  is_active: undefined,
-                  department: '',
-                  ordering: '',
-                })
-              }
-            >
-              Clear Filters
-            </button>
-            <button
-              onClick={() => mutate()}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              🔄 Refresh
-            </button>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search specialties by name, code, or department..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="pl-9 pr-9"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7"
+                  onClick={handleClearSearch}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size={isMobile ? 'icon' : 'default'}>
+                  <Filter className="h-4 w-4" />
+                  {!isMobile && <span className="ml-2">Filters</span>}
+                </Button>
+              </SheetTrigger>
+              <SheetContent 
+                side={isMobile ? 'bottom' : 'right'} 
+                className={isMobile ? 'h-[90vh]' : 'w-full sm:max-w-md'}
+              >
+                <SpecialtyFiltersDrawer
+                  filters={filters}
+                  onApplyFilters={handleApplyFilters}
+                  onResetFilters={handleResetFilters}
+                  onClose={() => setIsFiltersOpen(false)}
+                />
+              </SheetContent>
+            </Sheet>
           </div>
-        </div>
 
-        {/* Metadata */}
-        <div className="mb-4 p-4 bg-blue-50 rounded">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <span className="font-semibold">Total Count:</span> {count}
-            </div>
-            <div>
-              <span className="font-semibold">Current Page:</span>{' '}
-              {specialties.length} items
-            </div>
-            <div>
-              <span className="font-semibold">Has Next:</span>{' '}
-              {next ? 'Yes' : 'No'}
-            </div>
-            <div>
-              <span className="font-semibold">Has Previous:</span>{' '}
-              {previous ? 'Yes' : 'No'}
-            </div>
+          {/* Active Filter Tags */}
+          <div className="flex flex-wrap gap-2 mt-3">
+            {filters.search && (
+              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                Search: {filters.search}
+              </span>
+            )}
+            {filters.is_active !== undefined && (
+              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                Status: {filters.is_active ? 'Active' : 'Inactive'}
+              </span>
+            )}
+            {(filters as any).department && (
+              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400">
+                Department: {(filters as any).department}
+              </span>
+            )}
+            {filters.ordering && (
+              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                Sort: {filters.ordering.replace(/^-/, '').replace(/_/g, ' ')}
+              </span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Raw JSON Display */}
-      <div className="border rounded-lg p-6 bg-gray-50">
-        <h2 className="text-lg font-semibold mb-4">
-          Raw API Response (JSON):
-        </h2>
-        <pre className="bg-white p-4 rounded overflow-auto max-h-[600px] text-xs font-mono">
-          {JSON.stringify(
-            {
-              count,
-              next,
-              previous,
-              results: specialties,
-            },
-            null,
-            2
-          )}
-        </pre>
+      {/* Table Section */}
+      <div className="flex-1 overflow-auto">
+        <SpecialtiesTable
+          specialties={specialties}
+          isLoading={isLoading}
+          onEdit={handleEditSpecialty}
+          onView={handleViewSpecialty}
+          onRefresh={mutate}
+        />
       </div>
 
-      {/* Empty State */}
-      {specialties.length === 0 && (
-        <div className="mt-6 p-8 bg-yellow-50 rounded text-center">
-          <p className="text-gray-600">
-            No specialties found with current filters.
-          </p>
-        </div>
-      )}
+      {/* Specialty Drawer */}
+      <SpecialtyFormDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        specialtyId={selectedSpecialtyId}
+        mode={drawerMode}
+        onSuccess={handleDrawerSuccess}
+      />
     </div>
   );
 }
