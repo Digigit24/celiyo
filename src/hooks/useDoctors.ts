@@ -3,61 +3,25 @@ import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
 import { API_CONFIG, buildUrl, buildQueryString } from '@/lib/apiConfig';
 import { postFetcher, putFetcher, deleteFetcher } from '@/lib/swrConfig';
+import type {
+  Doctor,
+  DoctorListParams,
+  DoctorCreateData,
+  DoctorUpdateData,
+  Specialty,
+  PaginatedResponse,
+  ApiResponse,
+} from '@/types/doctor.types';
+import type { SpecialtyListParams } from '@/types/specialty.types';
 
-// Types
-export interface DoctorProfile {
-  id: number;
-  user: {
-    id: number;
-    email: string;
-    username: string;
-    first_name: string;
-    last_name: string;
-    phone: string;
-  };
-  medical_license_number: string;
-  license_issuing_authority: string;
-  license_issue_date: string;
-  license_expiry_date: string;
-  qualifications: string;
-  specialties: Array<{
-    id: number;
-    name: string;
-    description: string;
-  }>;
-  years_of_experience: number;
-  consultation_fee: string;
-  consultation_duration: number;
-  is_available_online: boolean;
-  is_available_offline: boolean;
-  is_verified: boolean;
-  languages_spoken: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface DoctorsListParams {
-  search?: string;
-  specialty?: string;
-  is_available?: boolean;
-  page?: number;
-  page_size?: number;
-  [key: string]: string | number | boolean | undefined;
-}
-
-export interface DoctorsListResponse {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: DoctorProfile[];
-}
+// ==================== DOCTORS HOOKS ====================
 
 // Hook to fetch doctors list with filters
-export const useDoctors = (params?: DoctorsListParams) => {
+export const useDoctors = (params?: DoctorListParams) => {
   const queryString = buildQueryString(params);
   const url = `${API_CONFIG.DOCTORS.PROFILES_LIST}${queryString}`;
 
-  const { data, error, isLoading, mutate } = useSWR<DoctorsListResponse>(
+  const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<Doctor>>(
     url,
     {
       revalidateOnFocus: false,
@@ -67,9 +31,9 @@ export const useDoctors = (params?: DoctorsListParams) => {
 
   return {
     doctors: data?.results || [],
-    totalCount: data?.count || 0,
-    nextPage: data?.next,
-    previousPage: data?.previous,
+    count: data?.count || 0,
+    next: data?.next,
+    previous: data?.previous,
     isLoading,
     error,
     mutate,
@@ -80,7 +44,7 @@ export const useDoctors = (params?: DoctorsListParams) => {
 export const useDoctor = (id: number | string | null) => {
   const url = id ? buildUrl(API_CONFIG.DOCTORS.PROFILE_DETAIL, { id }) : null;
 
-  const { data, error, isLoading, mutate } = useSWR<DoctorProfile>(
+  const { data, error, isLoading, mutate } = useSWR<Doctor>(
     url,
     {
       revalidateOnFocus: false,
@@ -99,7 +63,7 @@ export const useDoctor = (id: number | string | null) => {
 export const useCreateDoctor = () => {
   const { trigger, isMutating, error } = useSWRMutation(
     API_CONFIG.DOCTORS.PROFILE_CREATE,
-    postFetcher<DoctorProfile>
+    postFetcher<Doctor>
   );
 
   return {
@@ -115,7 +79,7 @@ export const useUpdateDoctor = (id: number | string) => {
 
   const { trigger, isMutating, error } = useSWRMutation(
     url,
-    putFetcher<DoctorProfile>
+    putFetcher<Doctor>
   );
 
   return {
@@ -142,18 +106,95 @@ export const useDeleteDoctor = () => {
   };
 };
 
-// Hook to fetch specialties
-export const useSpecialties = () => {
-  const { data, error, isLoading } = useSWR(
-    API_CONFIG.DOCTORS.SPECIALTIES_LIST,
+// ==================== SPECIALTIES HOOKS ====================
+
+// Hook to fetch all specialties with filters
+export const useSpecialties = (params?: SpecialtyListParams) => {
+  const queryString = buildQueryString(params);
+  const url = `${API_CONFIG.DOCTORS.SPECIALTIES_LIST}${queryString}`;
+
+  const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<Specialty>>(
+    url,
+    {
+      revalidateOnFocus: false,
+      keepPreviousData: true,
+      dedupingInterval: 60000, // Cache for 1 minute
+    }
+  );
+
+  return {
+    specialties: data?.results || [],
+    count: data?.count || 0,
+    next: data?.next,
+    previous: data?.previous,
+    isLoading,
+    error,
+    mutate,
+  };
+};
+
+// Hook to fetch single specialty
+export const useSpecialty = (id: number | string | null) => {
+  const url = id ? buildUrl(API_CONFIG.DOCTORS.SPECIALTY_DETAIL, { id }) : null;
+
+  const { data, error, isLoading, mutate } = useSWR<ApiResponse<Specialty>>(
+    url,
     {
       revalidateOnFocus: false,
     }
   );
 
   return {
-    specialties: data || [],
+    specialty: data?.data || null,
     isLoading,
+    error,
+    mutate,
+  };
+};
+
+// Hook to create specialty
+export const useCreateSpecialty = () => {
+  const { trigger, isMutating, error } = useSWRMutation(
+    API_CONFIG.DOCTORS.SPECIALTY_CREATE,
+    postFetcher<Specialty>
+  );
+
+  return {
+    createSpecialty: trigger,
+    isCreating: isMutating,
+    error,
+  };
+};
+
+// Hook to update specialty
+export const useUpdateSpecialty = (id: number | string) => {
+  const url = buildUrl(API_CONFIG.DOCTORS.SPECIALTY_UPDATE, { id });
+
+  const { trigger, isMutating, error } = useSWRMutation(
+    url,
+    putFetcher<Specialty>
+  );
+
+  return {
+    updateSpecialty: trigger,
+    isUpdating: isMutating,
+    error,
+  };
+};
+
+// Hook to delete specialty
+export const useDeleteSpecialty = () => {
+  const { trigger, isMutating, error } = useSWRMutation(
+    API_CONFIG.DOCTORS.SPECIALTY_DELETE,
+    async (url: string, { arg }: { arg: { id: number | string } }) => {
+      const deleteUrl = buildUrl(url, { id: arg.id });
+      return deleteFetcher(deleteUrl);
+    }
+  );
+
+  return {
+    deleteSpecialty: trigger,
+    isDeleting: isMutating,
     error,
   };
 };

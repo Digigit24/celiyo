@@ -1,15 +1,25 @@
-// ==================== SPECIALTY TYPES ====================
-// Matches Django Specialty model and API responses
+// src/types/specialty.types.ts
 
 export interface Specialty {
   id: number;
   name: string;
   code: string;
-  description: string;
-  department: string;
+  description: string | null;
+  department: string | null;
   is_active: boolean;
+  doctors_count: number;
   created_at: string;
   updated_at: string;
+}
+
+// Filter parameters for specialty list
+export interface SpecialtyListParams {
+  is_active?: boolean;
+  department?: string;
+  search?: string;
+  ordering?: string;
+  page?: number;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface SpecialtyCreateData {
@@ -28,25 +38,8 @@ export interface SpecialtyUpdateData {
   is_active?: boolean;
 }
 
-export interface SpecialtyListParams {
-  page?: number;
-  search?: string;
-  department?: string;
-  is_active?: boolean;
-  ordering?: string;
-}
-
-// ==================== API RESPONSE WRAPPERS ====================
-
 export interface ApiResponse<T> {
   success: boolean;
   message?: string;
   data: T;
-}
-
-export interface PaginatedResponse<T> {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: T[];
 }
