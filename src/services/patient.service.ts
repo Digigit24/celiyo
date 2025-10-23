@@ -20,6 +20,7 @@ import type {
   PatientMedication,
   MedicationCreateData,
   PatientStatistics,
+  PatientDetail,
 } from '@/types/patient.types';
 
 // ==================== PATIENT PROFILE CRUD ====================
@@ -185,5 +186,83 @@ export const getPatientStatistics = async (): Promise<PatientStatistics> => {
   const response = await apiClient.get<ApiResponse<PatientStatistics>>(
     API_CONFIG.PATIENTS.STATISTICS
   );
+  return response.data.data;
+};
+
+
+
+
+// src/services/patient.service.ts (APPEND to existing file)
+// ==================== ADD THESE NEW METHODS ====================
+
+/**
+ * Update patient allergy
+ */
+export const updatePatientAllergy = async (
+  allergyId: number,
+  data: Partial<AllergyCreateData>
+): Promise<PatientAllergy> => {
+  const response = await apiClient.patch<ApiResponse<PatientAllergy>>(
+    `/patients/allergies/${allergyId}/`,
+    data
+  );
+  return response.data.data;
+};
+
+/**
+ * Delete patient allergy
+ */
+export const deletePatientAllergy = async (allergyId: number): Promise<void> => {
+  await apiClient.delete(`/patients/allergies/${allergyId}/`);
+};
+
+/**
+ * Update medical history
+ */
+export const updatePatientMedicalHistory = async (
+  historyId: number,
+  data: Partial<MedicalHistoryCreateData>
+): Promise<PatientMedicalHistory> => {
+  const response = await apiClient.patch<ApiResponse<PatientMedicalHistory>>(
+    `/patients/medical-history/${historyId}/`,
+    data
+  );
+  return response.data.data;
+};
+
+/**
+ * Delete medical history
+ */
+export const deletePatientMedicalHistory = async (historyId: number): Promise<void> => {
+  await apiClient.delete(`/patients/medical-history/${historyId}/`);
+};
+
+/**
+ * Update patient medication
+ */
+export const updatePatientMedication = async (
+  medicationId: number,
+  data: Partial<MedicationCreateData>
+): Promise<PatientMedication> => {
+  const response = await apiClient.patch<ApiResponse<PatientMedication>>(
+    `/patients/medications/${medicationId}/`,
+    data
+  );
+  return response.data.data;
+};
+
+/**
+ * Delete patient medication
+ */
+export const deletePatientMedication = async (medicationId: number): Promise<void> => {
+  await apiClient.delete(`/patients/medications/${medicationId}/`);
+};
+
+/**
+ * Get patient detail (with all fields)
+ */
+export const getPatientDetail = async (id: number): Promise<PatientDetail> => {
+  const url = API_CONFIG.PATIENTS.DETAIL.replace(':id', String(id));
+  const response = await apiClient.get<ApiResponse<PatientDetail>>(url);
   return response.data.data;
 };

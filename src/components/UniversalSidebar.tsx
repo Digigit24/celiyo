@@ -11,8 +11,9 @@ import {
   Users,
   Calendar,
   ClipboardList,
-  Menu,
   X,
+  PanelLeftClose,
+  PanelLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,6 +22,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Separator } from "@/components/ui/separator";
 
 interface MenuItem {
   id: string;
@@ -115,7 +117,9 @@ export function UniversalSidebar({
 
   const isParentActive = (children?: MenuItem[]) => {
     if (!children) return false;
-    return children.some((child) => child.path && location.pathname === child.path);
+    return children.some(
+      (child) => child.path && location.pathname === child.path
+    );
   };
 
   const closeMobileSidebar = () => {
@@ -125,33 +129,54 @@ export function UniversalSidebar({
   };
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      {/* Logo Area */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
+    <div className="flex flex-col h-full bg-background border-r border-border">
+      {/* Header with Logo and Collapse Button */}
+      <div className="h-16 flex items-center justify-between px-4 border-b border-border shrink-0">
         {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Stethoscope className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-foreground rounded-lg flex items-center justify-center">
+              <Stethoscope className="w-5 h-5 text-background" />
             </div>
             <span className="font-bold text-lg">HMS</span>
           </div>
         )}
         {collapsed && (
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mx-auto">
-            <Stethoscope className="w-5 h-5 text-white" />
+          <div className="w-9 h-9 bg-foreground rounded-lg flex items-center justify-center mx-auto">
+            <Stethoscope className="w-5 h-5 text-background" />
           </div>
         )}
+
+        {/* Collapse Button - Top Right */}
+        {onCollapse && !mobileOpen && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCollapse}
+            className="h-8 w-8 hover:bg-muted"
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? (
+              <PanelLeft className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </Button>
+        )}
+
+        {/* Close Button for Mobile */}
         {mobileOpen && setMobileOpen && (
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setMobileOpen(false)}
-            className="lg:hidden"
+            className="h-8 w-8 hover:bg-muted"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </Button>
         )}
       </div>
+
+      <Separator />
 
       {/* Navigation Menu */}
       <ScrollArea className="flex-1 px-3 py-4">
@@ -172,8 +197,8 @@ export function UniversalSidebar({
                     <Button
                       variant="ghost"
                       className={cn(
-                        "w-full justify-start gap-3 h-10 px-3",
-                        hasActiveChild && "bg-blue-50 text-blue-600",
+                        "w-full justify-start gap-3 h-10 px-3 font-normal hover:bg-muted",
+                        hasActiveChild && "bg-muted font-medium",
                         collapsed && "justify-center px-2"
                       )}
                     >
@@ -182,9 +207,9 @@ export function UniversalSidebar({
                         <>
                           <span className="flex-1 text-left">{item.label}</span>
                           {isOpen ? (
-                            <ChevronDown className="h-4 w-4 shrink-0" />
+                            <ChevronDown className="h-4 w-4 shrink-0 transition-transform" />
                           ) : (
-                            <ChevronRight className="h-4 w-4 shrink-0" />
+                            <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
                           )}
                         </>
                       )}
@@ -202,9 +227,9 @@ export function UniversalSidebar({
                           <Button
                             variant="ghost"
                             className={cn(
-                              "w-full justify-start gap-3 h-9 px-3",
+                              "w-full justify-start gap-3 h-9 px-3 font-normal hover:bg-muted",
                               isActive(child.path) &&
-                                "bg-blue-50 text-blue-600 font-medium"
+                                "bg-muted font-medium text-foreground"
                             )}
                           >
                             <child.icon className="h-4 w-4 shrink-0" />
@@ -228,9 +253,9 @@ export function UniversalSidebar({
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start gap-3 h-10 px-3",
+                    "w-full justify-start gap-3 h-10 px-3 font-normal hover:bg-muted",
                     isActive(item.path) &&
-                      "bg-blue-50 text-blue-600 font-medium",
+                      "bg-muted font-medium text-foreground",
                     collapsed && "justify-center px-2"
                   )}
                 >
@@ -239,7 +264,7 @@ export function UniversalSidebar({
                     <>
                       <span className="flex-1 text-left">{item.label}</span>
                       {item.badge && (
-                        <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                        <span className="bg-foreground text-background text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center font-medium">
                           {item.badge}
                         </span>
                       )}
@@ -251,34 +276,17 @@ export function UniversalSidebar({
           })}
         </nav>
       </ScrollArea>
-
-      {/* Collapse Button (Desktop only) */}
-      {!mobileOpen && onCollapse && (
-        <div className="p-3 border-t border-gray-200">
-          <Button
-            variant="ghost"
-            onClick={onCollapse}
-            className={cn(
-              "w-full justify-start gap-3 h-10",
-              collapsed && "justify-center"
-            )}
-          >
-            <Menu className="h-5 w-5 shrink-0" />
-            {!collapsed && <span>Collapse</span>}
-          </Button>
-        </div>
-      )}
     </div>
   );
 
-  // Mobile Sidebar (Drawer)
+  // Mobile Sidebar (Drawer/Sheet)
   if (mobileOpen !== undefined && setMobileOpen !== undefined) {
     return (
       <>
         {/* Overlay */}
         {mobileOpen && (
           <div
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/80 z-40 lg:hidden backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
         )}
@@ -286,7 +294,7 @@ export function UniversalSidebar({
         {/* Mobile Sidebar */}
         <aside
           className={cn(
-            "fixed top-0 left-0 h-full w-72 bg-white border-r border-gray-200 z-50 transition-transform duration-300 lg:hidden",
+            "fixed top-0 left-0 h-full w-72 z-50 transition-transform duration-300 lg:hidden",
             mobileOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
@@ -296,11 +304,11 @@ export function UniversalSidebar({
     );
   }
 
-  // Desktop Sidebar
+  // Desktop Sidebar - FIXED POSITION
   return (
     <aside
       className={cn(
-        "h-screen bg-white border-r border-gray-200 transition-all duration-300 hidden lg:block",
+        "fixed top-0 left-0 h-screen transition-all duration-300 hidden lg:block z-30",
         collapsed ? "w-16" : "w-64"
       )}
     >

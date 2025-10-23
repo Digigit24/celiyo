@@ -1,6 +1,6 @@
 // src/services/opd/procedureBill.service.ts
 import apiClient from '@/api/client';
-import { OPD_API_CONFIG, buildOPDUrl } from '@/lib/opdApiConfig';
+import { OPD_API_CONFIG, buildOPDUrl } from '@/lib/apiConfig';
 import type {
   ProcedureBill,
   ProcedureBillCreateData,

@@ -1,158 +1,178 @@
+// src/types/patient.types.ts (UPDATED - add missing fields)
 // ==================== PATIENT TYPES ====================
 // Complete type definitions for Patient module
 // Matches Django backend fields exactly (snake_case)
+// DO NOT change field names - they must match API response!
 
 // ==================== ENUMS & CONSTANTS ====================
 export type PatientGender = 'male' | 'female' | 'other';
 export type PatientStatus = 'active' | 'inactive' | 'deceased';
 export type BloodGroup = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
 export type MaritalStatus = 'single' | 'married' | 'divorced' | 'widowed';
+export type AllergySeverity = 'mild' | 'moderate' | 'severe' | 'life_threatening';
+export type AllergyType = 'drug' | 'food' | 'environmental' | 'contact' | 'other';
+export type MedicalHistoryStatus = 'active' | 'resolved' | 'chronic';
 
-// ==================== MAIN PATIENT INTERFACE ====================
+// ==================== MAIN PATIENT INTERFACE (LIST VIEW) ====================
+// This matches the ACTUAL API response from /api/patients/patients/
 export interface PatientProfile {
   id: number;
   patient_id: string;
+  full_name: string;
+  age: number;
+  gender: PatientGender;
+  mobile_primary: string;
+  email: string | null;
+  blood_group: BloodGroup | null;
+  city: string | null;
+  status: PatientStatus;
+  registration_date: string;
+  last_visit_date: string | null;
+  total_visits: number;
+  is_insurance_valid: boolean;
+}
+
+// ==================== DETAILED PATIENT INTERFACE (DETAIL VIEW) ====================
+export interface PatientDetail {
+  id: number;
+  patient_id: string;
   user: number | null;
+  
+  // Personal Info
   first_name: string;
   last_name: string;
-  date_of_birth: string; // ISO date string (YYYY-MM-DD)
-  age: number; // Read-only, calculated by backend
+  middle_name: string | null;
+  full_name: string;
+  date_of_birth: string;
+  age: number;
   gender: PatientGender;
-  blood_group: BloodGroup | null;
-  marital_status: MaritalStatus | null;
-  phone: string;
-  alternate_phone: string | null;
+  
+  // Contact
+  mobile_primary: string;
+  mobile_secondary: string | null;
   email: string | null;
-  address: string | null;
+  
+  // Address
+  address_line1: string | null;
+  address_line2: string | null;
   city: string | null;
   state: string | null;
   pincode: string | null;
   country: string;
+  full_address: string;
+  
+  // Medical
+  blood_group: BloodGroup | null;
+  height: string | null; // Decimal in cm
+  weight: string | null; // Decimal in kg
+  bmi: string | null;
+  
+  // Social
+  marital_status: MaritalStatus | null;
+  occupation: string | null;
+  
+  // Emergency Contact
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
   emergency_contact_relation: string | null;
-  occupation: string | null;
-  has_insurance: boolean;
+  
+  // Insurance
   insurance_provider: string | null;
   insurance_policy_number: string | null;
-  insurance_expiry_date: string | null; // ISO date string
+  insurance_expiry_date: string | null;
+  is_insurance_valid: boolean;
+  
+  // Hospital
+  registration_date: string;
+  last_visit_date: string | null;
+  total_visits: number;
   status: PatientStatus;
-  registration_date: string; // ISO datetime string
-  last_visit_date: string | null; // ISO datetime string
-  notes: string | null;
-  photo: string | null; // URL
-  created_at: string; // ISO datetime string
-  updated_at: string; // ISO datetime string
+  
+  // Metadata
+  created_at: string;
+  updated_at: string;
   created_by: number | null;
-  updated_by: number | null;
 }
 
 // ==================== LIST FILTERS ====================
 export interface PatientListParams {
-  // Pagination
   page?: number;
   page_size?: number;
-
-  // Search
-  search?: string; // Search by name, patient_id, or phone
-
-  // Filters
+  search?: string;
   status?: PatientStatus;
   gender?: PatientGender;
   blood_group?: BloodGroup;
   has_insurance?: boolean;
   city?: string;
   state?: string;
-
-  // Age filters
   age_min?: number;
   age_max?: number;
-
-  // Date filters
-  date_from?: string; // Registration date from (YYYY-MM-DD)
-  date_to?: string; // Registration date to (YYYY-MM-DD)
-
-  // Ordering
-  ordering?: string; // e.g., '-registration_date', 'last_name', 'age'
-
-    [key: string]: string | number | boolean | undefined;
+  date_from?: string;
+  date_to?: string;
+  ordering?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 // ==================== CREATE/UPDATE DATA ====================
 export interface PatientCreateData {
-  // Required fields
   first_name: string;
   last_name: string;
-  date_of_birth: string; // YYYY-MM-DD
+  date_of_birth: string;
   gender: PatientGender;
-  phone: string;
-
-  // Optional fields
+  mobile_primary: string;
+  
+  middle_name?: string | null;
   user?: number | null;
   blood_group?: BloodGroup | null;
   marital_status?: MaritalStatus | null;
-  alternate_phone?: string | null;
+  mobile_secondary?: string | null;
   email?: string | null;
-  address?: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
   city?: string | null;
   state?: string | null;
   pincode?: string | null;
   country?: string;
+  height?: string | null;
+  weight?: string | null;
   emergency_contact_name?: string | null;
   emergency_contact_phone?: string | null;
   emergency_contact_relation?: string | null;
   occupation?: string | null;
-  has_insurance?: boolean;
   insurance_provider?: string | null;
   insurance_policy_number?: string | null;
   insurance_expiry_date?: string | null;
   status?: PatientStatus;
-  notes?: string | null;
-  photo?: string | null;
 }
 
-export interface PatientUpdateData extends Partial<PatientCreateData> {
-  // All fields optional for PATCH operations
-}
+export interface PatientUpdateData extends Partial<PatientCreateData> {}
 
 // ==================== VITALS ====================
 export interface PatientVitals {
   id: number;
   patient: number;
-  visit: number | null;
-  recorded_at: string; // ISO datetime
-  temperature: string | null; // Decimal as string
-  temperature_unit: 'celsius' | 'fahrenheit';
+  recorded_at: string;
+  temperature: string | null;
   blood_pressure_systolic: number | null;
   blood_pressure_diastolic: number | null;
-  pulse_rate: number | null;
+  blood_pressure: string | null; // Computed field "120/80"
+  heart_rate: number | null;
   respiratory_rate: number | null;
-  oxygen_saturation: string | null; // Decimal as string
-  weight: string | null; // Decimal as string
-  weight_unit: 'kg' | 'lbs';
-  height: string | null; // Decimal as string
-  height_unit: 'cm' | 'inches';
-  bmi: string | null; // Read-only calculated field
+  oxygen_saturation: string | null;
+  blood_glucose: string | null;
   notes: string | null;
-  recorded_by: number;
-  created_at: string;
-  updated_at: string;
+  recorded_by: number | null;
 }
 
 export interface VitalsCreateData {
   patient: number;
-  visit?: number | null;
   temperature?: string | null;
-  temperature_unit?: 'celsius' | 'fahrenheit';
   blood_pressure_systolic?: number | null;
   blood_pressure_diastolic?: number | null;
-  pulse_rate?: number | null;
+  heart_rate?: number | null;
   respiratory_rate?: number | null;
   oxygen_saturation?: string | null;
-  weight?: string | null;
-  weight_unit?: 'kg' | 'lbs';
-  height?: string | null;
-  height_unit?: 'cm' | 'inches';
+  blood_glucose?: string | null;
   notes?: string | null;
 }
 
@@ -160,25 +180,28 @@ export interface VitalsCreateData {
 export interface PatientAllergy {
   id: number;
   patient: number;
+  allergy_type: AllergyType;
   allergen: string;
-  reaction: string | null;
-  severity: 'mild' | 'moderate' | 'severe';
-  notes: string | null;
-  diagnosed_date: string | null; // ISO date string
+  severity: AllergySeverity;
+  symptoms: string;
+  treatment: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  recorded_by: number | null;
 }
 
 export interface AllergyCreateData {
   patient: number;
+  allergy_type: AllergyType;
   allergen: string;
-  reaction?: string | null;
-  severity: 'mild' | 'moderate' | 'severe';
-  notes?: string | null;
-  diagnosed_date?: string | null;
+  severity: AllergySeverity;
+  symptoms: string;
+  treatment?: string | null;
   is_active?: boolean;
 }
+
+export interface AllergyUpdateData extends Partial<AllergyCreateData> {}
 
 // ==================== MEDICAL HISTORY ====================
 export interface PatientMedicalHistory {
@@ -186,7 +209,7 @@ export interface PatientMedicalHistory {
   patient: number;
   condition: string;
   diagnosed_date: string | null;
-  status: 'active' | 'resolved' | 'chronic';
+  status: MedicalHistoryStatus;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -196,9 +219,11 @@ export interface MedicalHistoryCreateData {
   patient: number;
   condition: string;
   diagnosed_date?: string | null;
-  status?: 'active' | 'resolved' | 'chronic';
+  status?: MedicalHistoryStatus;
   notes?: string | null;
 }
+
+export interface MedicalHistoryUpdateData extends Partial<MedicalHistoryCreateData> {}
 
 // ==================== MEDICATIONS ====================
 export interface PatientMedication {
@@ -227,6 +252,8 @@ export interface MedicationCreateData {
   is_active?: boolean;
   notes?: string | null;
 }
+
+export interface MedicationUpdateData extends Partial<MedicationCreateData> {}
 
 // ==================== API RESPONSE WRAPPERS ====================
 export interface ApiResponse<T> {

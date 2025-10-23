@@ -78,7 +78,6 @@ export const API_CONFIG = {
     DELETE: '/appointments/types/:id/',
   },
 
-
   // ==================== OPD VISITS ====================
   OPD: {
     VISITS_LIST: '/opd/visits/',
@@ -86,10 +85,11 @@ export const API_CONFIG = {
     VISIT_CREATE: '/opd/visits/',
     VISIT_UPDATE: '/opd/visits/:id/',
     VISIT_DELETE: '/opd/visits/:id/',
-    QUEUE: '/opd/visits/queue/',
-    CALL_NEXT: '/opd/visits/call_next/',
-    COMPLETE_VISIT: '/opd/visits/:id/complete/',
-    VISIT_STATISTICS: '/opd/visits/statistics/',
+    VISITS_TODAY: '/opd/visits/today/',
+    VISITS_QUEUE: '/opd/visits/queue/',
+    VISITS_CALL_NEXT: '/opd/visits/call_next/',
+    VISIT_COMPLETE: '/opd/visits/:id/complete/',
+    VISITS_STATISTICS: '/opd/visits/statistics/',
   },
 
   // ==================== OPD BILLS ====================
@@ -103,20 +103,33 @@ export const API_CONFIG = {
     PRINT: '/opd/opd-bills/:id/print/',
   },
 
-  // ==================== PROCEDURE MANAGEMENT ====================
-  PROCEDURES: {
-    MASTERS_LIST: '/opd/procedure-masters/',
-    MASTER_DETAIL: '/opd/procedure-masters/:id/',
-    MASTER_CREATE: '/opd/procedure-masters/',
-    MASTER_UPDATE: '/opd/procedure-masters/:id/',
-    MASTER_DELETE: '/opd/procedure-masters/:id/',
-    BILLS_LIST: '/opd/procedure-bills/',
-    BILL_DETAIL: '/opd/procedure-bills/:id/',
-    BILL_CREATE: '/opd/procedure-bills/',
-    BILL_UPDATE: '/opd/procedure-bills/:id/',
-    BILL_DELETE: '/opd/procedure-bills/:id/',
+  // ==================== PROCEDURE MASTERS ====================
+  PROCEDURE_MASTERS: {
+    LIST: '/opd/procedure-masters/',
+    DETAIL: '/opd/procedure-masters/:id/',
+    CREATE: '/opd/procedure-masters/',
+    UPDATE: '/opd/procedure-masters/:id/',
+    DELETE: '/opd/procedure-masters/:id/',
+  },
+
+  // ==================== PROCEDURE PACKAGES ====================
+  PROCEDURE_PACKAGES: {
+    LIST: '/opd/procedure-packages/',
+    DETAIL: '/opd/procedure-packages/:id/',
+    CREATE: '/opd/procedure-packages/',
+    UPDATE: '/opd/procedure-packages/:id/',
+    DELETE: '/opd/procedure-packages/:id/',
+  },
+
+  // ==================== PROCEDURE BILLS ====================
+  PROCEDURE_BILLS: {
+    LIST: '/opd/procedure-bills/',
+    DETAIL: '/opd/procedure-bills/:id/',
+    CREATE: '/opd/procedure-bills/',
+    UPDATE: '/opd/procedure-bills/:id/',
+    DELETE: '/opd/procedure-bills/:id/',
     RECORD_PAYMENT: '/opd/procedure-bills/:id/record_payment/',
-    PRINT_BILL: '/opd/procedure-bills/:id/print/',
+    PRINT: '/opd/procedure-bills/:id/print/',
     ITEMS_LIST: '/opd/procedure-bill-items/',
     ITEM_DETAIL: '/opd/procedure-bill-items/:id/',
   },
@@ -234,6 +247,39 @@ export const API_CONFIG = {
   },
 };
 
+// ==================== OPD_API_CONFIG (For Backward Compatibility) ====================
+// This mirrors the original OPD_API_CONFIG structure so existing imports work
+export const OPD_API_CONFIG = {
+  BASE_URL: API_CONFIG.BASE_URL,
+  
+  VISITS: {
+    LIST: API_CONFIG.OPD.VISITS_LIST,
+    DETAIL: API_CONFIG.OPD.VISIT_DETAIL,
+    CREATE: API_CONFIG.OPD.VISIT_CREATE,
+    UPDATE: API_CONFIG.OPD.VISIT_UPDATE,
+    DELETE: API_CONFIG.OPD.VISIT_DELETE,
+    TODAY: API_CONFIG.OPD.VISITS_TODAY,
+    QUEUE: API_CONFIG.OPD.VISITS_QUEUE,
+    CALL_NEXT: API_CONFIG.OPD.VISITS_CALL_NEXT,
+    COMPLETE: API_CONFIG.OPD.VISIT_COMPLETE,
+    STATISTICS: API_CONFIG.OPD.VISITS_STATISTICS,
+  },
+  
+  OPD_BILLS: API_CONFIG.OPD_BILLS,
+  
+  PROCEDURE_MASTERS: API_CONFIG.PROCEDURE_MASTERS,
+  
+  PROCEDURE_PACKAGES: API_CONFIG.PROCEDURE_PACKAGES,
+  
+  PROCEDURE_BILLS: API_CONFIG.PROCEDURE_BILLS,
+  
+  CLINICAL_NOTES: API_CONFIG.CLINICAL_NOTES,
+  
+  VISIT_FINDINGS: API_CONFIG.VISIT_FINDINGS,
+  
+  VISIT_ATTACHMENTS: API_CONFIG.VISIT_ATTACHMENTS,
+};
+
 // ==================== HELPER FUNCTIONS ====================
 
 /**
@@ -257,6 +303,14 @@ export const buildUrl = (
 
   return url;
 };
+
+/**
+ * Build OPD URL (Backward compatibility alias for buildUrl)
+ * @param endpoint - API endpoint path
+ * @param params - URL parameters to replace (e.g., {id: '1'})
+ * @returns Full URL string
+ */
+export const buildOPDUrl = buildUrl;
 
 /**
  * Build query string from params object
