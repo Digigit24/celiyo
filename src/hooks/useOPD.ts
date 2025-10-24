@@ -187,15 +187,24 @@ export const useQueue = () => {
     }
   );
 
+  // Backend returns all waiting/called patients in single array
+  // We need to split them by status on the frontend
+  const allQueueVisits = Array.isArray(data?.data) ? data.data : [];
+  
+  const waiting = allQueueVisits.filter((v: Visit) => v.status === 'waiting');
+  const called = allQueueVisits.filter((v: Visit) => v.status === 'called');
+  const inConsultation = allQueueVisits.filter((v: Visit) => v.status === 'in_consultation');
+
   return {
-    waiting: data?.data.waiting || [],
-    called: data?.data.called || [],
-    inConsultation: data?.data.in_consultation || [],
+    waiting,
+    called,
+    inConsultation,
     isLoading,
     error,
     mutate,
   };
 };
+
 
 /**
  * Hook to fetch visit statistics

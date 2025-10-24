@@ -22,8 +22,9 @@ export const getVisits = async (
 
 export const getVisitById = async (id: number): Promise<Visit> => {
   const url = buildOPDUrl(OPD_API_CONFIG.VISITS.DETAIL, { id });
-  const response = await apiClient.get<ApiResponse<Visit>>(url);
-  return response.data.data;
+  const response = await apiClient.get<Visit>(url);
+  // API returns visit directly, not wrapped
+  return response.data;
 };
 
 export const createVisit = async (data: VisitCreateData): Promise<Visit> => {
@@ -61,11 +62,8 @@ export const getTodayVisits = async (): Promise<{
 
 export const getQueue = async (): Promise<{
   success: boolean;
-  data: {
-    waiting: Visit[];
-    called: Visit[];
-    in_consultation: Visit[];
-  };
+  count: number;
+  data: Visit[];
 }> => {
   const response = await apiClient.get(OPD_API_CONFIG.VISITS.QUEUE);
   return response.data;
