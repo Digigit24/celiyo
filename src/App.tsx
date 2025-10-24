@@ -1,3 +1,4 @@
+// src/App.tsx
 import { useState } from "react";
 import { SWRConfig } from "swr";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,6 +13,9 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { swrConfig } from "@/lib/swrConfig";
+import { cn } from "@/lib/utils";
+
+// Pages
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Inbox from "./pages/Inbox";
@@ -28,7 +32,8 @@ import VisitFindingsListPage from "./pages/opd/VisitFindingsListPage";
 import ProcedureMastersListPage from "./pages/opd/ProcedureMastersListPage";
 import ProcedurePackagesListPage from "./pages/opd/ProcedurePackagesListPage";
 import ProcedureBillsListPage from "./pages/opd/ProcedureBillsListPage";
-import { cn } from "@/lib/utils";
+import Consultation from "./pages/Consultation";
+import OPDBilling from "./pages/OPDBilling";
 
 const queryClient = new QueryClient();
 
@@ -84,17 +89,15 @@ const AppLayout = () => {
             <Route path="/opd/packages" element={<ProcedurePackagesListPage />} />
             <Route path="/opd/procedure-bills" element={<ProcedureBillsListPage />} />
 
+            {/* NEW: Visit-scoped workflow routes */}
+            <Route path="/consultation/:visitId" element={<Consultation />} />
+            <Route path="/opdbilling/:visitId" element={<OPDBilling />} />
+
             {/* Masters Routes */}
             <Route path="/masters/doctors" element={<DoctorsListPage />} />
-            <Route
-              path="/masters/specialties"
-              element={<SpecialtiesListPage />}
-            />
+            <Route path="/masters/specialties" element={<SpecialtiesListPage />} />
             <Route path="/masters/patients" element={<PatientsListPage />} />
-            <Route
-              path="/masters/appointments"
-              element={<AppointmentsListPage />}
-            />
+            <Route path="/masters/appointments" element={<AppointmentsListPage />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
