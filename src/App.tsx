@@ -14,26 +14,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { swrConfig } from "@/lib/swrConfig";
 import { cn } from "@/lib/utils";
-
-// Pages
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Inbox from "./pages/Inbox";
-import OPD from "./pages/OPD";
-import NotFound from "./pages/NotFound";
-import DoctorsListPage from "@/pages/masters/DoctorsListPage";
-import SpecialtiesListPage from "./pages/masters/SpecialtyListPage";
-import PatientsListPage from "./pages/masters/Patientslistpage";
-import AppointmentsListPage from "./pages/masters/AppointmentsListPage";
-import OpdVisitsListPage from "./pages/opd/OpdVisitsListPage";
-import OpdBillsListPage from "./pages/opd/OpdBillsListPage";
-import ClinicalNotesListPage from "./pages/opd/ClinicalNotesListPage";
-import VisitFindingsListPage from "./pages/opd/VisitFindingsListPage";
-import ProcedureMastersListPage from "./pages/opd/ProcedureMastersListPage";
-import ProcedurePackagesListPage from "./pages/opd/ProcedurePackagesListPage";
-import ProcedureBillsListPage from "./pages/opd/ProcedureBillsListPage";
-import Consultation from "./pages/Consultation";
-import OPDBilling from "./pages/OPDBilling";
+import { publicRoutes, protectedRoutes, notFoundRoute, flattenRoutes } from "@/routes";
 
 const queryClient = new QueryClient();
 
@@ -76,30 +57,13 @@ const AppLayout = () => {
         {/* Page Content - Scrollable with top padding for fixed header */}
         <main className="flex-1 overflow-auto pt-16">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/inbox" element={<Inbox />} />
-            <Route path="/opd" element={<OPD />} />
-
-            {/* OPD Routes */}
-            <Route path="/opd/visits" element={<OpdVisitsListPage />} />
-            <Route path="/opd/bills" element={<OpdBillsListPage />} />
-            <Route path="/opd/clinical-notes" element={<ClinicalNotesListPage />} />
-            <Route path="/opd/findings" element={<VisitFindingsListPage />} />
-            <Route path="/opd/procedures" element={<ProcedureMastersListPage />} />
-            <Route path="/opd/packages" element={<ProcedurePackagesListPage />} />
-            <Route path="/opd/procedure-bills" element={<ProcedureBillsListPage />} />
-
-            {/* NEW: Visit-scoped workflow routes */}
-            <Route path="/consultation/:visitId" element={<Consultation />} />
-            <Route path="/opdbilling/:visitId" element={<OPDBilling />} />
-
-            {/* Masters Routes */}
-            <Route path="/masters/doctors" element={<DoctorsListPage />} />
-            <Route path="/masters/specialties" element={<SpecialtiesListPage />} />
-            <Route path="/masters/patients" element={<PatientsListPage />} />
-            <Route path="/masters/appointments" element={<AppointmentsListPage />} />
-
-            <Route path="*" element={<NotFound />} />
+            {/* Render all protected routes */}
+            {flattenRoutes(protectedRoutes).map((route, index) => (
+              <Route key={index} path={route.path} element={route.element} />
+            ))}
+            
+            {/* 404 Route */}
+            <Route path={notFoundRoute.path} element={notFoundRoute.element} />
           </Routes>
         </main>
       </div>
@@ -119,7 +83,9 @@ const App = () => {
               <BrowserRouter>
                 <Routes>
                   {/* Public Routes */}
-                  <Route path="/login" element={<Login />} />
+                  {publicRoutes.map((route, index) => (
+                    <Route key={index} path={route.path} element={route.element} />
+                  ))}
 
                   {/* Protected Routes */}
                   <Route
