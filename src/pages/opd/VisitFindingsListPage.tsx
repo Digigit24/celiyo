@@ -1,12 +1,12 @@
 // src/pages/opd/VisitFindingsListPage.tsx
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useVisitFindings } from '@/hooks/useOPD';
 import type { VisitFindingListParams, FindingType } from '@/types/opd.types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 
 import {
   RefreshCcw,
@@ -28,25 +27,20 @@ import {
   Eye,
 } from 'lucide-react';
 
-// global shared table (same one PatientsTable uses)
 import { DataTable, DataTableColumn } from '@/components/DataTable';
 
-// ----------------------------------------------------
-// helpers (similar idea to how PatientTable formats its cells)
-// ----------------------------------------------------
+// --------------------------------------
+// helpers
+// --------------------------------------
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return '-';
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 function getPatientName(f: any) {
@@ -65,7 +59,11 @@ function getVisitId(f: any) {
   return '—';
 }
 
-function FindingTypeBadge({ finding_type }: { finding_type?: FindingType | string }) {
+function FindingTypeBadge({
+  finding_type,
+}: {
+  finding_type?: FindingType | string;
+}) {
   if (!finding_type) {
     return (
       <Badge variant="outline" className="text-[10px] font-medium">
@@ -121,17 +119,34 @@ function getFindingExtraText(f: any) {
   return '';
 }
 
-// ----------------------------------------------------
-// main page
-// ----------------------------------------------------
+// --------------------------------------
+// page
+// --------------------------------------
 
 export default function VisitFindingsListPage() {
+  // server filters
   const [filters, setFilters] = useState<VisitFindingListParams>({
     page: 1,
     finding_type: undefined,
     search: '',
+    finding_date: undefined,
+    visit: undefined,
   });
 
+  // debounced search input
+  const [searchText, setSearchText] = useState(filters.search || '');
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setFilters((prev) => ({
+        ...prev,
+        search: searchText,
+        page: 1,
+      }));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [searchText]);
+
+  // data hook
   const {
     visitFindings,
     count,
@@ -142,47 +157,78 @@ export default function VisitFindingsListPage() {
     mutate,
   } = useVisitFindings(filters);
 
-  const handleFilterChange = (key: keyof VisitFindingListParams, value: any) => {
+  // first successful load tracker
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  useEffect(() => {
+    if (!isLoading && !error) {
+      setHasLoadedOnce(true);
+    }
+  }, [isLoading, error]);
+
+  // quick derived stats for summary cards
+  const examCount = useMemo(
+    () =>
+      visitFindings.filter((f: any) => f.finding_type === 'examination')
+        .length,
+    [visitFindings]
+  );
+
+  const investigationCount = useMemo(
+    () =>
+      visitFindings.filter((f: any) => f.finding_type === 'investigation')
+        .length,
+    [visitFindings]
+  );
+
+  // filter setter + page reset
+  const updateFilter = useCallback(
+    (key: keyof VisitFindingListParams, value: any) => {
+      setFilters((prev) => ({
+        ...prev,
+        [key]: value === 'all' ? undefined : value,
+        page: 1,
+      }));
+    },
+    []
+  );
+
+  // pagination
+  const goPrevPage = useCallback(() => {
     setFilters((prev) => ({
       ...prev,
-      [key]: value === 'all' ? undefined : value,
-      page: 1,
+      page: (prev.page || 1) - 1,
     }));
-  };
+  }, []);
 
-  const handleRefresh = () => {
+  const goNextPage = useCallback(() => {
+    setFilters((prev) => ({
+      ...prev,
+      page: (prev.page || 1) + 1,
+    }));
+  }, []);
+
+  // refresh
+  const handleRefresh = useCallback(() => {
     mutate();
-  };
+  }, [mutate]);
 
-  // ---
-  // row actions like PatientTable
-  // ---
-
+  // row actions
   const handleViewFinding = useCallback((finding: any) => {
     console.log('view finding', finding.id);
-    // open drawer / navigate
+    // TODO open GlobalDrawer in view mode
   }, []);
 
   const handleEditFinding = useCallback((finding: any) => {
     console.log('edit finding', finding.id);
-    // open edit drawer
+    // TODO open GlobalDrawer in edit mode
   }, []);
 
   const handleDeleteFinding = useCallback(async (finding: any) => {
     console.log('delete finding', finding.id);
-    // you'll call delete API here in future:
-    // await deleteVisitFinding(finding.id)
-    // mutate()
+    // TODO call deleteVisitFinding(finding.id); mutate();
   }, []);
 
-  // ---
-  // Desktop table columns
-  // This mirrors the style of PatientTable columns:
-  // - left-aligned, multi-line cells
-  // - small metadata under primary line
-  // - badges for status/type/etc.
-  // ---
-
+  // columns for desktop table
   const columns = useMemo<DataTableColumn<any>[]>(() => {
     return [
       {
@@ -190,7 +236,7 @@ export default function VisitFindingsListPage() {
         header: 'Patient',
         cell: (f) => (
           <div>
-            <div className="font-medium text-slate-900 flex items-center gap-1 text-[13px]">
+            <div className="font-medium text-slate-900 flex items-center gap-1 text-[13px] leading-tight">
               <User className="h-3.5 w-3.5 text-slate-500" />
               <span>{getPatientName(f)}</span>
             </div>
@@ -231,7 +277,7 @@ export default function VisitFindingsListPage() {
         key: 'recorded',
         header: 'Recorded On',
         cell: (f) => (
-          <div className="text-xs text-muted-foreground flex flex-col">
+          <div className="text-xs text-muted-foreground flex flex-col leading-tight">
             <div className="flex items-center gap-1 text-slate-700 text-sm leading-tight">
               <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
               <span>{formatDate(f.finding_date)}</span>
@@ -246,12 +292,7 @@ export default function VisitFindingsListPage() {
     ];
   }, []);
 
-  // ---
-  // Mobile card renderer
-  // This mirrors PatientTable's mobile card pattern:
-  // header (name + badge + meta) + body info + footer actions
-  // ---
-
+  // mobile card layout
   const renderMobileCard = useCallback(
     (f: any, actions: any) => {
       return (
@@ -284,7 +325,7 @@ export default function VisitFindingsListPage() {
               </div>
             </div>
 
-            {/* quick view button (like PatientTable using Eye) */}
+            {/* quick view */}
             <Button
               variant="ghost"
               size="icon"
@@ -298,7 +339,7 @@ export default function VisitFindingsListPage() {
             </Button>
           </div>
 
-          {/* main finding data */}
+          {/* content */}
           <div>
             <div className="text-sm font-medium leading-snug text-slate-900">
               {getFindingMainText(f)}
@@ -310,7 +351,7 @@ export default function VisitFindingsListPage() {
             )}
           </div>
 
-          {/* footer row with meta + edit/delete CTAs, same vibe as PatientTable */}
+          {/* footer actions */}
           <div className="flex items-center justify-between pt-2 border-t text-xs">
             <span className="text-muted-foreground flex items-center gap-1">
               <FileText className="h-3.5 w-3.5 text-slate-400" />
@@ -351,26 +392,50 @@ export default function VisitFindingsListPage() {
     []
   );
 
-  // ---
-  // loading-before-data (kept same as you had)
-  // ---
-  if (isLoading && visitFindings.length === 0) {
+  // ---------- skeleton before first data ----------
+
+  if (!hasLoadedOnce && isLoading) {
     return (
-      <div className="p-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4" />
-          <div className="h-64 bg-gray-100 rounded" />
+      <div className="p-4 md:p-8 space-y-6">
+        {/* header skeleton */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-2">
+            <div className="h-7 w-48 bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-64 bg-gray-100 rounded animate-pulse" />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="h-9 w-24 bg-gray-100 rounded animate-pulse" />
+            <div className="h-9 w-24 bg-gray-200 rounded animate-pulse" />
+          </div>
+        </div>
+
+        {/* cards skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="border rounded-lg p-4 space-y-2 bg-white animate-pulse"
+            >
+              <div className="h-4 w-1/2 bg-gray-100 rounded" />
+              <div className="h-6 w-1/3 bg-gray-200 rounded" />
+            </div>
+          ))}
+        </div>
+
+        {/* table skeleton */}
+        <div className="bg-white border rounded-lg p-6">
+          <div className="h-5 w-44 bg-gray-200 rounded mb-4 animate-pulse" />
+          <div className="h-32 bg-gray-100 rounded animate-pulse" />
         </div>
       </div>
     );
   }
 
-  // ---
-  // error state (unchanged)
-  // ---
+  // ---------- error state ----------
+
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
           <h2 className="font-semibold mb-2">Error Loading Visit Findings</h2>
           <p>{(error as any)?.message || 'Failed to load visit findings'}</p>
@@ -383,142 +448,159 @@ export default function VisitFindingsListPage() {
     );
   }
 
-  // ---
-  // main page layout with EXACT PatientTable-style table in the middle
-  // ---
+  // ---------- main layout ----------
 
   return (
-    <div className="p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="p-4 md:p-8 space-y-6">
+      {/* PAGE HEADER */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Visit Findings</h1>
-          <p className="text-muted-foreground mt-1">
-            View and manage patient vital signs and examination findings
+          <h1 className="text-2xl md:text-3xl font-bold leading-tight">
+            Visit Findings
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">
+            View and manage patient examination and investigation findings
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={handleRefresh} variant="outline" size="sm">
+
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={handleRefresh}
+            variant="outline"
+            size="sm"
+            className="min-w-[90px]"
+          >
             <RefreshCcw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
-          <Button size="sm">
+          <Button size="sm" className="min-w-[90px]">
             <Plus className="mr-2 h-4 w-4" />
             Record Finding
           </Button>
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* SUMMARY CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white border rounded-lg p-4">
           <p className="text-sm text-muted-foreground">Total Findings</p>
           <p className="text-2xl font-bold">{count}</p>
         </div>
+
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
           <p className="text-sm text-purple-600">Examinations</p>
-          <p className="text-2xl font-bold text-purple-700">
-            {visitFindings.filter(
-              (f: any) => f.finding_type === 'examination'
-            ).length}
-          </p>
+          <p className="text-2xl font-bold text-purple-700">{examCount}</p>
         </div>
+
         <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
           <p className="text-sm text-indigo-600">Investigations</p>
           <p className="text-2xl font-bold text-indigo-700">
-            {visitFindings.filter(
-              (f: any) => f.finding_type === 'investigation'
-            ).length}
+            {investigationCount}
           </p>
         </div>
       </div>
 
-      {/* Filters (unchanged) */}
-      <div className="bg-white border rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4">Filters</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Search */}
-          <div className="space-y-2">
-            <Label htmlFor="search">Search</Label>
-            <Input
-              id="search"
-              placeholder="Patient name, visit number..."
-              value={filters.search || ''}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
-            />
+      {/* TABLE CARD */}
+      <div className="bg-white border rounded-lg">
+        {/* header / filters row */}
+        <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-start md:justify-between p-4 md:p-6 border-b">
+          {/* left block: title + counts */}
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg font-semibold leading-none">
+                Findings List
+              </h2>
+              <Badge variant="outline" className="text-[11px] font-normal">
+                {visitFindings.length} shown / {count} total
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Page {filters.page || 1}
+            </p>
           </div>
 
-          {/* Finding Type Filter */}
-          <div className="space-y-2">
-            <Label htmlFor="finding_type">Finding Type</Label>
-            <Select
-              value={filters.finding_type || 'all'}
-              onValueChange={(value) =>
-                handleFilterChange('finding_type', value)
-              }
-            >
-              <SelectTrigger id="finding_type">
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="examination">Examination</SelectItem>
-                <SelectItem value="investigation">Investigation</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* right block: filters */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            {/* SEARCH (debounced via searchText) */}
+            <div className="flex flex-col">
+              <Input
+                id="search"
+                className="h-9 w-[220px] md:w-[200px] lg:w-[220px]"
+                placeholder="Patient, visit, notes..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
+            </div>
 
-          {/* Finding Date Filter */}
-          <div className="space-y-2">
-            <Label htmlFor="finding_date">Finding Date</Label>
-            <Input
-              id="finding_date"
-              type="date"
-              value={filters.finding_date || ''}
-              onChange={(e) =>
-                handleFilterChange('finding_date', e.target.value)
-              }
-            />
-          </div>
+            {/* TYPE */}
+            <div className="flex flex-col">
+              <Select
+                value={filters.finding_type || 'all'}
+                onValueChange={(val) => updateFilter('finding_type', val)}
+              >
+                <SelectTrigger className="h-9 w-[140px] text-xs">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="examination">Examination</SelectItem>
+                  <SelectItem value="investigation">Investigation</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Visit ID Filter */}
-          <div className="space-y-2">
-            <Label htmlFor="visit">Visit ID</Label>
-            <Input
-              id="visit"
-              type="number"
-              placeholder="Filter by visit ID..."
-              value={filters.visit || ''}
-              onChange={(e) =>
-                handleFilterChange(
-                  'visit',
-                  parseInt(e.target.value) || undefined
-                )
-              }
-            />
+            {/* DATE */}
+            <div className="flex flex-col">
+              <Input
+                id="finding_date"
+                type="date"
+                className="h-9 w-[150px] text-xs"
+                value={filters.finding_date || ''}
+                onChange={(e) =>
+                  updateFilter(
+                    'finding_date',
+                    e.target.value ? e.target.value : undefined
+                  )
+                }
+              />
+            </div>
+
+            {/* VISIT ID */}
+            <div className="flex flex-col">
+              <Input
+                id="visit"
+                type="number"
+                className="h-9 w-[120px] text-xs"
+                placeholder="Visit #"
+                value={filters.visit ?? ''}
+                onChange={(e) => {
+                  const parsed = parseInt(e.target.value);
+                  updateFilter('visit', isNaN(parsed) ? undefined : parsed);
+                }}
+              />
+            </div>
+
+            {/* APPLY / REFRESH */}
+            <div className="flex flex-col">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 px-3 text-[12px] font-normal"
+                onClick={handleRefresh}
+              >
+                <RefreshCcw className="h-4 w-4 mr-2" />
+                Apply
+              </Button>
+            </div>
           </div>
         </div>
 
-        <div className="mt-4 text-sm text-muted-foreground">
-          <strong>Total Findings:</strong> {count} |{' '}
-          <strong>Current Page:</strong> {filters.page || 1}
-        </div>
-      </div>
-
-      {/* TABLE AREA (EXACTLY LIKE PatientTable pattern) */}
-      <div className="bg-white border rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          Findings List
-          <Badge variant="outline" className="text-[11px] font-normal">
-            {visitFindings.length} shown / {count} total
-          </Badge>
-        </h2>
-
-        <div className="w-full overflow-hidden">
+        {/* TABLE BODY */}
+        <div className="py-4 md:py-6">
           <DataTable
             rows={visitFindings}
-            isLoading={isLoading && visitFindings.length === 0}
             columns={columns}
+            isLoading={isLoading && hasLoadedOnce}
             getRowId={(f: any) => f.id}
             getRowLabel={(f: any) =>
               `Finding ${f.id} (${f.finding_type || '-'}) for ${getPatientName(
@@ -530,57 +612,38 @@ export default function VisitFindingsListPage() {
             onDelete={handleDeleteFinding}
             renderMobileCard={renderMobileCard}
             emptyTitle="No findings found"
-            emptySubtitle="Try changing filters or record a new finding"
+            emptySubtitle="Try adjusting filters or record a new finding"
           />
         </div>
-      </div>
 
-      {/* Pagination (unchanged) */}
-      {(next || previous) && (
-        <div className="flex items-center justify-between bg-white border rounded-lg p-4">
-          <Button
-            variant="outline"
-            disabled={!previous}
-            onClick={() =>
-              handleFilterChange('page', (filters.page || 1) - 1)
-            }
-          >
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {filters.page || 1}
-          </span>
-          <Button
-            variant="outline"
-            disabled={!next}
-            onClick={() =>
-              handleFilterChange('page', (filters.page || 1) + 1)
-            }
-          >
-            Next
-          </Button>
-        </div>
-      )}
+        {/* PAGINATION FOOTER */}
+        {(next || previous) && (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t px-4 py-4 md:px-6">
+            <Button
+              variant="outline"
+              disabled={!previous}
+              onClick={goPrevPage}
+              className="sm:min-w-[100px]"
+              size="sm"
+            >
+              Previous
+            </Button>
 
-      {/* Raw JSON debug (unchanged) */}
-      <div className="bg-white border rounded-lg p-6">
-        <h2 className="text-lg font-semibold mb-4">
-          Visit Findings (Raw API Response)
-        </h2>
-        <div className="bg-gray-50 p-4 rounded overflow-auto max-h-[600px]">
-          <pre className="text-xs">
-            {JSON.stringify(
-              {
-                count,
-                next,
-                previous,
-                results: visitFindings,
-              },
-              null,
-              2
-            )}
-          </pre>
-        </div>
+            <span className="text-sm text-muted-foreground text-center">
+              Page {filters.page || 1}
+            </span>
+
+            <Button
+              variant="outline"
+              disabled={!next}
+              onClick={goNextPage}
+              className="sm:min-w-[100px]"
+              size="sm"
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

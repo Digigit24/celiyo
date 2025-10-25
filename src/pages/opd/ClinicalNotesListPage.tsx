@@ -6,7 +6,6 @@ import type { ClinicalNoteListParams, ClinicalNote } from '@/types/opd.types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 
 import {
@@ -27,8 +26,12 @@ import { useIsMobile } from '@/hooks/use-is-mobile';
 // global reusable table
 import { DataTable, DataTableColumn } from '@/components/DataTable';
 
-// import ClinicalNotesFiltersDrawer from '@/components/ClinicalNotesFiltersDrawer';
-// import ClinicalNoteDrawer from '@/components/ClinicalNoteDrawer';
+// global drawer
+import { SideDrawer } from '@/components/SideDrawer';
+
+// drawer bodies
+import ClinicalNotesFiltersDrawer from '@/components/ClinicalNotesFiltersDrawer';
+import ClinicalNoteDrawerBody from '@/components/ClinicalNoteDrawerBody';
 
 // ----------------------------------------
 // helpers to read values from note safely
@@ -75,8 +78,6 @@ function getFollowup(note: ClinicalNote) {
 export default function ClinicalNotesListPage() {
   const isMobile = useIsMobile();
 
-  // --- Local state ---
-
   // what the user is typing in the search input (uncommitted)
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -88,16 +89,17 @@ export default function ClinicalNotesListPage() {
     visit: undefined,
   });
 
+  // filter drawer state
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
-  // drawer for create / edit / view
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  // note drawer state (create / edit / view)
+  const [noteDrawerOpen, setNoteDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<'create' | 'edit' | 'view'>(
     'view'
   );
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null);
 
-  // --- Data fetch ---
+  // fetch
   const {
     clinicalNotes,
     count,
@@ -108,7 +110,7 @@ export default function ClinicalNotesListPage() {
     mutate,
   } = useClinicalNotes(filters);
 
-  // --- Derived stats for header ---
+  // stats
   const headerStats = useMemo(() => {
     const todayISO = new Date().toISOString().split('T')[0];
     let todayCount = 0;
@@ -130,9 +132,7 @@ export default function ClinicalNotesListPage() {
     };
   }, [clinicalNotes]);
 
-  // --- Handlers ---
-
-  // commit searchQuery -> filters.search and refetch
+  // search commit
   const handleSearchCommit = () => {
     setFilters((prev) => ({
       ...prev,
@@ -156,12 +156,13 @@ export default function ClinicalNotesListPage() {
     }));
   };
 
+  // filters drawer open/close
   const handleOpenFilters = (open: boolean) => {
     setIsFiltersOpen(open);
   };
 
+  // apply filters from drawer body
   const handleApplyFilters = (newFilters: ClinicalNoteListParams) => {
-    // keep page = 1 when applying new filters
     setFilters({
       ...newFilters,
       page: 1,
@@ -170,6 +171,7 @@ export default function ClinicalNotesListPage() {
     setIsFiltersOpen(false);
   };
 
+  // reset filters
   const handleResetFilters = () => {
     setFilters({
       page: 1,
@@ -180,6 +182,7 @@ export default function ClinicalNotesListPage() {
     setIsFiltersOpen(false);
   };
 
+  // pagination
   const handlePrevPage = () => {
     setFilters((prev) => ({
       ...prev,
@@ -194,32 +197,31 @@ export default function ClinicalNotesListPage() {
     }));
   };
 
+  // refresh
   const handleRefresh = () => {
     mutate();
   };
 
-  // drawer open in create mode
+  // open note drawer
   const handleCreateNote = () => {
     setSelectedNoteId(null);
     setDrawerMode('create');
-    setDrawerOpen(true);
+    setNoteDrawerOpen(true);
   };
 
-  // drawer open in edit mode
   const handleEditNote = (note: ClinicalNote) => {
     setSelectedNoteId(note.id);
     setDrawerMode('edit');
-    setDrawerOpen(true);
+    setNoteDrawerOpen(true);
   };
 
-  // drawer open in view mode
   const handleViewNote = (note: ClinicalNote) => {
     setSelectedNoteId(note.id);
     setDrawerMode('view');
-    setDrawerOpen(true);
+    setNoteDrawerOpen(true);
   };
 
-  // when drawer saves successfully
+  // after save
   const handleDrawerSuccess = () => {
     mutate(); // refresh list after create/update
   };
@@ -385,12 +387,10 @@ export default function ClinicalNotesListPage() {
   );
 
   // delete note handler (optional)
-  // if you don't support delete yet, you can pass no onDelete below
   async function handleDeleteNote(note: ClinicalNote) {
-    // TODO: call your delete API for clinical note if you have it
-    // await deleteClinicalNote(note.id)
-    // mutate()
+    // TODO: call delete API for clinical note if you have it
     console.log('delete note', note.id);
+    // mutate();
   }
 
   // --- Loading state (initial fetch) ---
@@ -425,178 +425,290 @@ export default function ClinicalNotesListPage() {
     );
   }
 
-  // --- Page layout ---
+  // header + search + stats + table + pagination + drawers
   return (
-    <div className="flex flex-col h-screen bg-background">
-      {/* HEADER (sticky) */}
-      <div className="border-b bg-background sticky top-0 z-10">
-        {/* Top Row: title + actions */}
-        <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4">
-          <div className="flex items-center gap-3">
-            {isMobile && (
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            )}
-
-            <div>
-              <h1 className="text-xl md:text-2xl font-semibold">
-                Clinical Notes
-              </h1>
-              <p className="text-xs md:text-sm text-muted-foreground">
-                {count} total notes • {headerStats.todayCount} today •{' '}
-                {headerStats.followupCount} with follow-up
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              onClick={handleRefresh}
-              variant="outline"
-              size={isMobile ? 'icon' : 'sm'}
-            >
-              <RefreshCcw className="h-4 w-4" />
-              {!isMobile && <span className="ml-2">Refresh</span>}
-            </Button>
-
-            <Button
-              onClick={handleCreateNote}
-              size={isMobile ? 'sm' : 'default'}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              {!isMobile && 'New Note'}
-            </Button>
-          </div>
-        </div>
-
-        {/* Search + Filters Row */}
-        <div className="px-4 pb-3 md:px-6 md:pb-4">
-          <div className="flex gap-2">
-            {/* Search Input */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by patient name, diagnosis, visit ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={handleSearchKeyPress}
-                className="pl-9 pr-9"
-              />
-              {searchQuery && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                  onClick={handleClearSearch}
-                >
-                  <X className="h-4 w-4" />
+    <>
+      <div className="flex flex-col h-screen bg-background">
+        {/* HEADER (sticky) */}
+        <div className="border-b bg-background sticky top-0 z-10">
+          {/* Top Row: title + actions */}
+          <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4">
+            <div className="flex items-center gap-3">
+              {isMobile && (
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <ArrowLeft className="h-5 w-5" />
                 </Button>
               )}
+
+              <div>
+                <h1 className="text-xl md:text-2xl font-semibold">
+                  Clinical Notes
+                </h1>
+                <p className="text-xs md:text-sm text-muted-foreground">
+                  {count} total notes • {headerStats.todayCount} today •{' '}
+                  {headerStats.followupCount} with follow-up
+                </p>
+              </div>
             </div>
 
-            {/* Filters Drawer Trigger */}
-            <Sheet open={isFiltersOpen} onOpenChange={handleOpenFilters}>
-              <SheetTrigger asChild>
-                <Button
-                  variant="outline"
-                  size={isMobile ? 'icon' : 'default'}
-                >
-                  <Filter className="h-4 w-4" />
-                  {!isMobile && <span className="ml-2">Filters</span>}
-                </Button>
-              </SheetTrigger>
-
-              <SheetContent
-                side={isMobile ? 'bottom' : 'right'}
-                className={isMobile ? 'h-[90vh]' : 'w-full sm:max-w-md'}
+            <div className="flex gap-2">
+              <Button
+                onClick={handleRefresh}
+                variant="outline"
+                size={isMobile ? 'icon' : 'sm'}
               >
-                {/* <ClinicalNotesFiltersDrawer
-                  filters={filters}
-                  onApplyFilters={handleApplyFilters}
-                  onResetFilters={handleResetFilters}
-                  onClose={() => setIsFiltersOpen(false)}
-                /> */}
-              </SheetContent>
-            </Sheet>
+                <RefreshCcw className="h-4 w-4" />
+                {!isMobile && <span className="ml-2">Refresh</span>}
+              </Button>
+
+              <Button
+                onClick={handleCreateNote}
+                size={isMobile ? 'sm' : 'default'}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {!isMobile && 'New Note'}
+              </Button>
+            </div>
           </div>
 
-          {/* Active filter chips */}
-          <div className="flex flex-wrap gap-2 mt-3 text-xs">
-            {filters.search && (
-              <span className="inline-flex items-center px-2 py-1 rounded-md font-medium bg-primary/10 text-primary">
-                Search: {filters.search}
-              </span>
-            )}
+          {/* Search + Filters Row */}
+          <div className="px-4 pb-3 md:px-6 md:pb-4">
+            <div className="flex gap-2">
+              {/* Search Input */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by patient name, diagnosis, visit ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={handleSearchKeyPress}
+                  className="pl-9 pr-9"
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                    onClick={handleClearSearch}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
 
-            {filters.note_date && (
-              <span className="inline-flex items-center px-2 py-1 rounded-md font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                Date: {filters.note_date}
-              </span>
-            )}
+              {/* Filters Drawer Trigger */}
+              <Button
+                variant="outline"
+                size={isMobile ? 'icon' : 'default'}
+                onClick={() => setIsFiltersOpen(true)}
+              >
+                <Filter className="h-4 w-4" />
+                {!isMobile && <span className="ml-2">Filters</span>}
+              </Button>
+            </div>
 
-            {typeof filters.visit !== 'undefined' && filters.visit !== null && (
-              <span className="inline-flex items-center px-2 py-1 rounded-md font-medium bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400">
-                Visit ID: {filters.visit}
-              </span>
-            )}
+            {/* Active filter chips */}
+            <div className="flex flex-wrap gap-2 mt-3 text-xs">
+              {filters.search && (
+                <span className="inline-flex items-center px-2 py-1 rounded-md font-medium bg-primary/10 text-primary">
+                  Search: {filters.search}
+                </span>
+              )}
+
+              {filters.note_date && (
+                <span className="inline-flex items-center px-2 py-1 rounded-md font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                  Date: {filters.note_date}
+                </span>
+              )}
+
+              {typeof filters.visit !== 'undefined' &&
+                filters.visit !== null && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-md font-medium bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400">
+                    Visit ID: {filters.visit}
+                  </span>
+                )}
+            </div>
           </div>
         </div>
+
+        {/* TABLE BODY (scrollable area) */}
+        <div className="flex-1 overflow-auto px-4 py-4 md:px-6 md:py-6">
+          <DataTable
+            rows={clinicalNotes}
+            isLoading={isLoading}
+            columns={columns}
+            getRowId={(n: ClinicalNote) => n.id}
+            getRowLabel={(n: ClinicalNote) =>
+              `Note ${n.id} for ${getPatientName(n)}`
+            }
+            onView={handleViewNote}
+            onEdit={handleEditNote}
+            // remove if you don't want delete yet
+            onDelete={handleDeleteNote}
+            renderMobileCard={renderMobileCard}
+            emptyTitle="No clinical notes found"
+            emptySubtitle="Try clearing filters or create a new note"
+          />
+        </div>
+
+        {/* PAGINATION FOOTER */}
+        {(next || previous) && (
+          <div className="border-t bg-background px-4 py-3 md:px-6 flex items-center justify-between">
+            <Button
+              variant="outline"
+              disabled={!previous}
+              onClick={handlePrevPage}
+            >
+              Previous
+            </Button>
+
+            <span className="text-sm text-muted-foreground">
+              Page {filters.page || 1}
+            </span>
+
+            <Button
+              variant="outline"
+              disabled={!next}
+              onClick={handleNextPage}
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* TABLE BODY (scrollable area) */}
-      <div className="flex-1 overflow-auto px-4 py-4 md:px-6 md:py-6">
-        <DataTable
-          rows={clinicalNotes}
-          isLoading={isLoading}
-          columns={columns}
-          getRowId={(n: ClinicalNote) => n.id}
-          getRowLabel={(n: ClinicalNote) =>
-            `Note ${n.id} for ${getPatientName(n)}`
+      {/* FILTERS DRAWER (bottom on mobile / right on desktop) */}
+      <SideDrawer
+        open={isFiltersOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            // when closing, just close
+            setIsFiltersOpen(false);
+          } else {
+            setIsFiltersOpen(true);
           }
-          onView={handleViewNote}
-          onEdit={handleEditNote}
-          // if you don't want delete yet, just remove onDelete
-          onDelete={handleDeleteNote}
-          renderMobileCard={renderMobileCard}
-          emptyTitle="No clinical notes found"
-          emptySubtitle="Try clearing filters or create a new note"
+        }}
+        title="Filters"
+        subtitle="Refine clinical note search"
+        mode="view"
+        size={isMobile ? 'lg' : 'md'}
+        // Let the footer be Apply / Reset / Close
+        footerButtons={[
+          {
+            label: 'Reset',
+            variant: 'outline',
+            onClick: handleResetFilters,
+          },
+          {
+            label: 'Apply',
+            onClick: () => {
+              // ClinicalNotesFiltersDrawer will update draftFilters via callbacks,
+              // but the real apply happens here because we pass handlers down.
+              // We just call handleApplyFilters using the local state inside that drawer.
+              // We'll manage that via render-prop style below.
+            },
+            // we'll override this via render-prop child below,
+            // so this placeholder won't actually render.
+          },
+        ]}
+      >
+        <ClinicalNotesFiltersDrawer
+          initialFilters={filters}
+          onApply={(newFilters) => handleApplyFilters(newFilters)}
+          onReset={handleResetFilters}
+          onClose={() => setIsFiltersOpen(false)}
         />
-      </div>
-
-      {/* PAGINATION FOOTER */}
-      {(next || previous) && (
-        <div className="border-t bg-background px-4 py-3 md:px-6 flex items-center justify-between">
-          <Button
-            variant="outline"
-            disabled={!previous}
-            onClick={handlePrevPage}
-          >
-            Previous
-          </Button>
-
-          <span className="text-sm text-muted-foreground">
-            Page {filters.page || 1}
-          </span>
-
-          <Button
-            variant="outline"
-            disabled={!next}
-            onClick={handleNextPage}
-          >
-            Next
-          </Button>
-        </div>
-      )}
+      </SideDrawer>
 
       {/* NOTE DRAWER (create / edit / view) */}
-      {/* <ClinicalNoteDrawer
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        noteId={selectedNoteId}
+      <SideDrawer
+        open={noteDrawerOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setNoteDrawerOpen(false);
+            setSelectedNoteId(null);
+            setDrawerMode('view');
+          } else {
+            setNoteDrawerOpen(true);
+          }
+        }}
+        title={
+          drawerMode === 'create'
+            ? 'New Clinical Note'
+            : drawerMode === 'edit'
+            ? `Edit Clinical Note #${selectedNoteId ?? ''}`
+            : `Clinical Note #${selectedNoteId ?? ''}`
+        }
+        subtitle={
+          drawerMode === 'create'
+            ? 'Add a new clinical note'
+            : drawerMode === 'edit'
+            ? 'Update this clinical note'
+            : 'View details'
+        }
         mode={drawerMode}
-        onSuccess={handleDrawerSuccess}
-      /> */}
-    </div>
+        size="xl"
+        footerButtons={
+          drawerMode === 'view'
+            ? [
+                {
+                  label: 'Close',
+                  variant: 'outline',
+                  onClick: () => {
+                    setNoteDrawerOpen(false);
+                    setSelectedNoteId(null);
+                    setDrawerMode('view');
+                  },
+                },
+              ]
+            : drawerMode === 'edit'
+            ? [
+                {
+                  label: 'Cancel',
+                  variant: 'outline',
+                  onClick: () => {
+                    setNoteDrawerOpen(false);
+                    setSelectedNoteId(null);
+                    setDrawerMode('view');
+                  },
+                },
+                {
+                  label: 'Save Changes',
+                  onClick: () => {
+                    // ClinicalNoteDrawerBody will actually save
+                    // we can trigger save via ref or callback
+                    // placeholder for now
+                  },
+                },
+              ]
+            : [
+                // create
+                {
+                  label: 'Discard',
+                  variant: 'outline',
+                  onClick: () => {
+                    setNoteDrawerOpen(false);
+                    setSelectedNoteId(null);
+                    setDrawerMode('view');
+                  },
+                },
+                {
+                  label: 'Create Note',
+                  onClick: () => {
+                    // same story: trigger create in body
+                  },
+                },
+              ]
+        }
+      >
+        <ClinicalNoteDrawerBody
+          noteId={selectedNoteId}
+          mode={drawerMode}
+          onSuccess={() => {
+            handleDrawerSuccess();
+          }}
+        />
+      </SideDrawer>
+    </>
   );
 }

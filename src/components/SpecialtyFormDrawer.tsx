@@ -1,18 +1,17 @@
 // src/components/SpecialtyFormDrawer.tsx
 import { useEffect, useState } from 'react';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+
 import { getSpecialties } from '@/services/doctor.service';
 import type { Specialty } from '@/types/doctor.types';
+
 import SpecialtyBasicInfo from './specialty-drawer/SpecialtyBasicInfo';
 import SpecialtyDoctorsTab from './specialty-drawer/SpecialtyDoctorsTab';
+
+// ✅ import the new global drawer
+import { SideDrawer } from '@/components/SideDrawer';
 
 interface SpecialtyFormDrawerProps {
   open: boolean;
@@ -33,7 +32,12 @@ export default function SpecialtyFormDrawer({
   const [specialty, setSpecialty] = useState<Specialty | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // optional: if you want to show saving spinner on footer button later
+  const [saving, setSaving] = useState(false);
+
+  //
   // Fetch specialty data when drawer opens
+  //
   useEffect(() => {
     if (open && specialtyId && mode !== 'create') {
       fetchSpecialtyData();
@@ -44,12 +48,12 @@ export default function SpecialtyFormDrawer({
 
   const fetchSpecialtyData = async () => {
     if (!specialtyId) return;
-    
+
     setLoading(true);
     try {
       // Fetch all specialties and find the one we need
       const response = await getSpecialties();
-      const foundSpecialty = response.find(s => s.id === specialtyId);
+      const foundSpecialty = response.find((s) => s.id === specialtyId);
       if (foundSpecialty) {
         setSpecialty(foundSpecialty);
       } else {
@@ -64,69 +68,158 @@ export default function SpecialtyFormDrawer({
   };
 
   const handleSuccess = () => {
+    // re-fetch so drawer shows updated data
     fetchSpecialtyData();
     onSuccess?.();
   };
 
-  const handleClose = () => {
-    setActiveTab('basic');
-    onOpenChange(false);
+  // this replaces your old handleClose
+  const handleDrawerOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      // drawer is closing -> reset tabs
+      setActiveTab('basic');
+    }
+    onOpenChange(nextOpen);
   };
 
-  return (
-    <Sheet open={open} onOpenChange={handleClose}>
-      <SheetContent className="w-full sm:max-w-3xl overflow-y-auto">
-        <SheetHeader className="mb-6">
-          <SheetTitle>
-            {mode === 'create' 
-              ? 'Create New Specialty' 
-              : mode === 'edit'
-              ? `Edit Specialty - ${specialty?.name || ''}`
-              : `Specialty Details - ${specialty?.name || ''}`
-            }
-          </SheetTitle>
-          {specialty && (
-            <div className="text-sm text-muted-foreground">
-              Code: {specialty.code} • {specialty.doctors_count || 0} doctors
-            </div>
-          )}
-        </SheetHeader>
+  //
+  // Drawer header text
+  //
+  const headerTitle =
+    mode === 'create'
+      ? 'Create New Specialty'
+      : mode === 'edit'
+      ? `Edit Specialty - ${specialty?.name || ''}`
+      : `Specialty Details - ${specialty?.name || ''}`;
 
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="basic">Basic Info</TabsTrigger>
-              <TabsTrigger value="doctors" disabled={mode === 'create'}>
-                Doctors ({specialty?.doctors_count || 0})
-              </TabsTrigger>
-            </TabsList>
+  const headerSubtitle =
+    mode === 'create'
+      ? 'Create new specialty record'
+      : specialty
+      ? `Code: ${specialty.code} • ${specialty.doctors_count || 0} doctors`
+      : undefined;
 
-            <TabsContent value="basic" className="mt-6">
-              <SpecialtyBasicInfo
-                specialty={specialty}
-                mode={mode}
-                onSuccess={handleSuccess}
-                onClose={handleClose}
-              />
-            </TabsContent>
+  //
+  // Drawer footer buttons
+  // (You can tune these per mode. This is just a consistent pattern.)
+  //
+  const footerButtons =
+    mode === 'view'
+      ? [
+          {
+            label: 'Close',
+            variant: 'outline' as const,
+            onClick: () => handleDrawerOpenChange(false),
+          },
+        ]
+      : mode === 'edit'
+      ? [
+          {
+            label: 'Cancel',
+            variant: 'outline' as const,
+            onClick: () => handleDrawerOpenChange(false),
+          },
+          {
+            label: 'Save Changes',
+            onClick: async () => {
+              // You can trigger save from SpecialtyBasicInfo instead,
+              // or lift save handler up here.
+              // For now, just demo structure:
+              setSaving(true);
+              try {
+                // await saveSpecialty(...)
+                toast.success('Specialty updated');
+                handleSuccess();
+              } catch (e: any) {
+                toast.error(e?.message || 'Failed to save');
+              } finally {
+                setSaving(false);
+              }
+            },
+            loading: saving,
+          },
+        ]
+      : [
+          // create mode
+          {
+            label: 'Discard',
+            variant: 'outline' as const,
+            onClick: () => handleDrawerOpenChange(false),
+          },
+          {
+            label: 'Create Specialty',
+            onClick: async () => {
+              setSaving(true);
+              try {
+                // await createSpecialty(...)
+                toast.success('Specialty created');
+                handleSuccess();
+              } catch (e: any) {
+                toast.error(e?.message || 'Failed to create');
+              } finally {
+                setSaving(false);
+              }
+            },
+            loading: saving,
+          },
+        ];
 
-            <TabsContent value="doctors" className="mt-6">
-              {specialtyId && (
-                <SpecialtyDoctorsTab
-                  specialtyId={specialtyId}
-                  specialtyName={specialty?.name || ''}
-                  readOnly={mode === 'view'}
-                  onUpdate={handleSuccess}
-                />
-              )}
-            </TabsContent>
-          </Tabs>
+  //
+  // Drawer body content
+  //
+  const bodyContent = loading ? (
+    <div className="flex items-center justify-center py-12 text-muted-foreground">
+      <Loader2 className="h-8 w-8 animate-spin mr-2" />
+      <span>Loading...</span>
+    </div>
+  ) : (
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="basic">Basic Info</TabsTrigger>
+        <TabsTrigger value="doctors" disabled={mode === 'create'}>
+          Doctors ({specialty?.doctors_count || 0})
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="basic" className="mt-6">
+        <SpecialtyBasicInfo
+          specialty={specialty}
+          mode={mode}
+          onSuccess={handleSuccess}
+          onClose={() => handleDrawerOpenChange(false)}
+        />
+      </TabsContent>
+
+      <TabsContent value="doctors" className="mt-6">
+        {specialtyId && (
+          <SpecialtyDoctorsTab
+            specialtyId={specialtyId}
+            specialtyName={specialty?.name || ''}
+            readOnly={mode === 'view'}
+            onUpdate={handleSuccess}
+          />
         )}
-      </SheetContent>
-    </Sheet>
+      </TabsContent>
+    </Tabs>
+  );
+
+  //
+  // Render the shared global drawer
+  //
+  return (
+    <SideDrawer
+      open={open}
+      onOpenChange={handleDrawerOpenChange}
+      title={headerTitle}
+      subtitle={headerSubtitle}
+      mode={mode}
+      // we already handle "loading" inside bodyContent,
+      // so keep isLoading={false} here so header/footer don't disappear
+      isLoading={false}
+      size="xl"
+      footerButtons={footerButtons}
+    >
+      {bodyContent}
+    </SideDrawer>
   );
 }
