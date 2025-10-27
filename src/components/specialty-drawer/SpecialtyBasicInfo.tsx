@@ -3,13 +3,11 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Loader2, Save } from 'lucide-react';
 import { createSpecialty, updateSpecialty } from '@/services/doctor.service';
 import type { Specialty } from '@/types/doctor.types';
 import { format } from 'date-fns';
@@ -28,22 +26,18 @@ interface SpecialtyBasicInfoProps {
   specialty: Specialty | null;
   mode: 'view' | 'edit' | 'create';
   onSuccess: () => void;
-  onClose: () => void;
 }
 
 export default function SpecialtyBasicInfo({ 
   specialty, 
   mode, 
-  onSuccess, 
-  onClose 
+  onSuccess
 }: SpecialtyBasicInfoProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const isReadOnly = mode === 'view';
   const isCreateMode = mode === 'create';
 
   const {
     register,
-    handleSubmit,
     formState: { errors },
     setValue,
     watch,
@@ -69,28 +63,6 @@ export default function SpecialtyBasicInfo({
     }
   }, [specialty, isCreateMode, setValue]);
 
-  const onSubmit = async (data: SpecialtyFormData) => {
-    setIsSubmitting(true);
-    try {
-      if (isCreateMode) {
-        await createSpecialty(data);
-        toast.success('Specialty created successfully');
-      } else {
-        await updateSpecialty(specialty!.id, data);
-        toast.success('Specialty updated successfully');
-      }
-      
-      onSuccess();
-      if (isCreateMode) {
-        onClose();
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save specialty');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
     try {
@@ -101,7 +73,7 @@ export default function SpecialtyBasicInfo({
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <div className="space-y-6">
       {/* Basic Information */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Basic Information</h3>
@@ -129,7 +101,7 @@ export default function SpecialtyBasicInfo({
             <Input
               id="code"
               {...register('code')}
-              disabled={isReadOnly || !isCreateMode} // Code can't be changed after creation
+              disabled={isReadOnly || !isCreateMode}
               placeholder="e.g., CARD"
               className="font-mono uppercase"
               onChange={(e) => {
@@ -224,28 +196,6 @@ export default function SpecialtyBasicInfo({
         </div>
       )}
 
-      {/* Action Buttons */}
-      {!isReadOnly && (
-        <div className="flex gap-3 pt-4">
-          <Button type="submit" disabled={isSubmitting} className="flex-1">
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isCreateMode ? 'Creating...' : 'Saving...'}
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                {isCreateMode ? 'Create Specialty' : 'Save Changes'}
-              </>
-            )}
-          </Button>
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-        </div>
-      )}
-
       {/* Info Box */}
       <div className="p-4 border border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 rounded-lg">
         <p className="text-sm text-blue-900 dark:text-blue-100">
@@ -253,6 +203,6 @@ export default function SpecialtyBasicInfo({
           Use standard medical specialty codes when possible (e.g., CARD for Cardiology, ORTHO for Orthopedics).
         </p>
       </div>
-    </form>
+    </div>
   );
 }

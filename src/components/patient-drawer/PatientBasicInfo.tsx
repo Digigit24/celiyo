@@ -1,6 +1,5 @@
 // src/components/patient-drawer/PatientBasicInfo.tsx
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -27,16 +26,13 @@ interface PatientBasicInfoProps {
   patient: PatientDetail | null;
   mode: 'view' | 'edit' | 'create';
   onSuccess: () => void;
-  onClose: () => void;
 }
 
 export default function PatientBasicInfo({
   patient,
   mode,
   onSuccess,
-  onClose,
 }: PatientBasicInfoProps) {
-  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<PatientCreateData>({
     first_name: '',
     last_name: '',
@@ -79,31 +75,10 @@ export default function PatientBasicInfo({
     }
   }, [patient, mode]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-
-    try {
-      if (mode === 'create') {
-        await createPatient(formData);
-        toast.success('Patient registered successfully');
-      } else {
-        await updatePatient(patient!.id, formData);
-        toast.success('Patient updated successfully');
-      }
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Operation failed');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const isReadOnly = mode === 'view';
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
       {/* Personal Information */}
       <div>
         <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
@@ -280,7 +255,7 @@ export default function PatientBasicInfo({
             />
           </div>
 
-          <div className="md:col-span-2">
+          <div>
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
@@ -300,8 +275,8 @@ export default function PatientBasicInfo({
       {/* Address */}
       <div>
         <h3 className="text-lg font-semibold mb-4">Address</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
+        <div className="grid grid-cols-1 gap-4">
+          <div>
             <Label htmlFor="address_line1">Address Line 1</Label>
             <Input
               id="address_line1"
@@ -313,7 +288,7 @@ export default function PatientBasicInfo({
             />
           </div>
 
-          <div className="md:col-span-2">
+          <div>
             <Label htmlFor="address_line2">Address Line 2</Label>
             <Input
               id="address_line2"
@@ -325,40 +300,42 @@ export default function PatientBasicInfo({
             />
           </div>
 
-          <div>
-            <Label htmlFor="city">City</Label>
-            <Input
-              id="city"
-              value={formData.city || ''}
-              onChange={(e) =>
-                setFormData({ ...formData, city: e.target.value })
-              }
-              disabled={isReadOnly}
-            />
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="city">City</Label>
+              <Input
+                id="city"
+                value={formData.city || ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, city: e.target.value })
+                }
+                disabled={isReadOnly}
+              />
+            </div>
 
-          <div>
-            <Label htmlFor="state">State</Label>
-            <Input
-              id="state"
-              value={formData.state || ''}
-              onChange={(e) =>
-                setFormData({ ...formData, state: e.target.value })
-              }
-              disabled={isReadOnly}
-            />
-          </div>
+            <div>
+              <Label htmlFor="state">State</Label>
+              <Input
+                id="state"
+                value={formData.state || ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, state: e.target.value })
+                }
+                disabled={isReadOnly}
+              />
+            </div>
 
-          <div>
-            <Label htmlFor="pincode">Pincode</Label>
-            <Input
-              id="pincode"
-              value={formData.pincode || ''}
-              onChange={(e) =>
-                setFormData({ ...formData, pincode: e.target.value })
-              }
-              disabled={isReadOnly}
-            />
+            <div>
+              <Label htmlFor="pincode">Pincode</Label>
+              <Input
+                id="pincode"
+                value={formData.pincode || ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, pincode: e.target.value })
+                }
+                disabled={isReadOnly}
+              />
+            </div>
           </div>
 
           <div>
@@ -565,17 +542,12 @@ export default function PatientBasicInfo({
         </div>
       )}
 
-      {/* Action Buttons */}
-      {!isReadOnly && (
-        <div className="flex gap-2 pt-4">
-          <Button type="submit" disabled={saving}>
-            {saving ? 'Saving...' : mode === 'create' ? 'Register' : 'Save Changes'}
-          </Button>
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-        </div>
-      )}
-    </form>
+      {/* Info Box */}
+      <div className="p-4 border border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 rounded-lg">
+        <p className="text-sm text-blue-900 dark:text-blue-100">
+          <strong>💡 Tip:</strong> All fields marked with <span className="text-red-500">*</span> are required. Make sure to provide accurate contact information for better patient care coordination.
+        </p>
+      </div>
+    </div>
   );
 }

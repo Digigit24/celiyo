@@ -51,7 +51,18 @@ export const deleteVisit = async (id: number): Promise<void> => {
 
 // ==================== VISIT ACTIONS ====================
 
-export const getTodayVisits = async (): Promise<{
+// Modified: Now returns just the Visit[] array for easier use in components
+export const getTodayVisits = async (): Promise<Visit[]> => {
+  const response = await apiClient.get<{
+    success: boolean;
+    count: number;
+    data: Visit[];
+  }>(OPD_API_CONFIG.VISITS.TODAY);
+  return response.data.data;
+};
+
+// Keep original for backward compatibility
+export const getTodayVisitsRaw = async (): Promise<{
   success: boolean;
   count: number;
   data: Visit[];
@@ -67,6 +78,23 @@ export const getQueue = async (): Promise<{
 }> => {
   const response = await apiClient.get(OPD_API_CONFIG.VISITS.QUEUE);
   return response.data;
+};
+
+// NEW: Added for the new UI - returns structured queue data
+export const getVisitQueue = async (): Promise<{
+  waiting: Visit[];
+  called: Visit[];
+  in_consultation: Visit[];
+}> => {
+  const response = await apiClient.get<{
+    success: boolean;
+    data: {
+      waiting: Visit[];
+      called: Visit[];
+      in_consultation: Visit[];
+    };
+  }>(OPD_API_CONFIG.VISITS.QUEUE);
+  return response.data.data;
 };
 
 export const callNextPatient = async (): Promise<{
@@ -86,7 +114,19 @@ export const completeVisit = async (
   return response.data;
 };
 
+// Modified: Now returns just the VisitStatistics data for easier use
 export const getVisitStatistics = async (
+  period: 'day' | 'week' | 'month' = 'day'
+): Promise<VisitStatistics> => {
+  const response = await apiClient.get<ApiResponse<VisitStatistics>>(
+    OPD_API_CONFIG.VISITS.STATISTICS,
+    { params: { period } }
+  );
+  return response.data.data;
+};
+
+// Keep original for backward compatibility
+export const getVisitStatisticsRaw = async (
   params?: { start_date?: string; end_date?: string }
 ): Promise<ApiResponse<VisitStatistics>> => {
   const response = await apiClient.get<ApiResponse<VisitStatistics>>(
