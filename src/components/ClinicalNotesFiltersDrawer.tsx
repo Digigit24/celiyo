@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 
 interface ClinicalNotesFiltersDrawerProps {
   // whatever is currently applied in the page
-  initialFilters: ClinicalNoteListParams;
+  initialFilters?: ClinicalNoteListParams;
 
   // parent wants the new filters committed
   onApply: (f: ClinicalNoteListParams) => void;
@@ -20,20 +20,21 @@ interface ClinicalNotesFiltersDrawerProps {
 }
 
 export default function ClinicalNotesFiltersDrawer({
-  initialFilters,
+  initialFilters = {},
   onApply,
   onReset,
   onClose,
 }: ClinicalNotesFiltersDrawerProps) {
   // we edit a local draft that isn't applied until user taps "Apply"
+  // Ensure initialFilters is always an object, never undefined
   const [localFilters, setLocalFilters] = useState<ClinicalNoteListParams>(
-    initialFilters
+    initialFilters || {}
   );
 
   // if parent updates filters (for example after Reset),
   // sync those into local
   useEffect(() => {
-    setLocalFilters(initialFilters);
+    setLocalFilters(initialFilters || {});
   }, [initialFilters]);
 
   const handleApplyClick = () => {
@@ -60,10 +61,10 @@ export default function ClinicalNotesFiltersDrawer({
           <Input
             id="search"
             placeholder="Patient, diagnosis, complaint..."
-            value={localFilters.search || ''}
+            value={localFilters?.search || ''}
             onChange={(e) =>
               setLocalFilters((prev) => ({
-                ...prev,
+                ...(prev || {}),
                 search: e.target.value,
               }))
             }
@@ -79,10 +80,10 @@ export default function ClinicalNotesFiltersDrawer({
           <Input
             id="note_date"
             type="date"
-            value={localFilters.note_date || ''}
+            value={localFilters?.note_date || ''}
             onChange={(e) =>
               setLocalFilters((prev) => ({
-                ...prev,
+                ...(prev || {}),
                 note_date: e.target.value || undefined,
               }))
             }
@@ -96,14 +97,21 @@ export default function ClinicalNotesFiltersDrawer({
             id="visit"
             type="number"
             placeholder="Filter by visit ID"
-            value={localFilters.visit || ''}
+            value={localFilters?.visit || ''}
             onChange={(e) =>
               setLocalFilters((prev) => ({
-                ...prev,
+                ...(prev || {}),
                 visit: parseInt(e.target.value, 10) || undefined,
               }))
             }
           />
+        </div>
+
+        {/* Info text */}
+        <div className="p-4 border border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 rounded-lg">
+          <p className="text-sm text-blue-900 dark:text-blue-100">
+            <strong>💡 Tip:</strong> Use filters to narrow down clinical notes. Click "Apply" to search with these filters, or "Reset" to clear all filters.
+          </p>
         </div>
       </div>
 

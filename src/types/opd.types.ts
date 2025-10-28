@@ -412,71 +412,117 @@ export interface ClinicalNoteCreateData {
 export interface ClinicalNoteUpdateData extends Partial<ClinicalNoteCreateData> {}
 
 // ============================================================================
-// VISIT FINDING TYPES
+// FINDING TYPES
 // ============================================================================
 
-export type FindingType = 'examination' | 'investigation';
+// Types of findings recorded during a visit
+export type FindingType =
+  | 'vital_signs'
+  | 'physical_examination'
+  | 'symptoms'
+  | 'general_observation'
+  | 'system_examination';
 
-export interface VisitFinding {
+// Full Finding record returned from API
+export interface Finding {
   id: number;
-  visit: number;
-  visit_number?: string;
-  patient_name?: string;
-  finding_date: string;
-  finding_type: FindingType;
-  temperature: string | null;
-  pulse: number | null;
-  bp_systolic: number | null;
-  bp_diastolic: number | null;
-  blood_pressure?: string;
-  weight: string | null;
-  height: string | null;
-  bmi: string | null;
-  bmi_category?: string;
-  spo2: number | null;
-  respiratory_rate: number | null;
-  tongue: string;
-  throat: string;
-  cns: string;
-  rs: string;
-  cvs: string;
-  pa: string;
-  recorded_by: number | null;
-  recorded_by_name?: string;
+  visit_id: number;              // maps to old `visit`
+  finding_type: FindingType;     // was 'examination' | 'investigation'
+  recorded_at: string;           // replaces old `finding_date`
+  recorded_by?: string;          // old had recorded_by (number) + recorded_by_name
+
+  // Vital Signs (were: temperature, pulse, bp_systolic, etc.)
+  temperature?: string | null;
+  blood_pressure_systolic?: string | null;   // old bp_systolic (number | null)
+  blood_pressure_diastolic?: string | null;  // old bp_diastolic (number | null)
+  pulse_rate?: string | null;                // old pulse (number | null)
+  respiratory_rate?: string | null;         // stays (was number | null, now string)
+  oxygen_saturation?: string | null;        // old spo2
+  weight?: string | null;
+  height?: string | null;
+  bmi?: string | null;
+  pain_scale?: string | null;
+
+  // Physical Examination (old had tongue, throat, cns, rs, cvs, pa)
+  general_appearance?: string | null;
+  consciousness_level?: string | null;
+  skin_condition?: string | null;
+  head_neck?: string | null;
+  cardiovascular?: string | null;           // old cvs
+  respiratory?: string | null;              // old rs
+  abdomen?: string | null;                  // old pa
+  extremities?: string | null;
+  neurological?: string | null;             // old cns
+
+  // Additional Fields
+  findings_notes?: string | null;
+  abnormalities?: string | null;
+
+  // Metadata (keep created/updated like before)
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
-export interface VisitFindingListParams {
+// Query params when listing/filtering findings (like VisitFindingListParams)
+export interface FindingListParams {
   page?: number;
-  visit?: number;
+  visit_id?: number;            // old: visit
   finding_type?: FindingType;
-  finding_date?: string;
+  recorded_at?: string;         // old: finding_date
   search?: string;
   ordering?: string;
   [key: string]: string | number | boolean | undefined;
 }
 
-export interface VisitFindingCreateData {
-  visit: number;
-  finding_type?: FindingType;
+// Data required to create a new Finding
+// mirrors Finding but only what's allowed to POST
+// keep fields optional like in VisitFindingCreateData
+export interface FindingCreateData {
+  visit_id: number;
+  finding_type: FindingType;
+  recorded_at: string;
+
+  // Vital Signs (optional)
   temperature?: string;
-  pulse?: number;
-  bp_systolic?: number;
-  bp_diastolic?: number;
+  blood_pressure_systolic?: string;
+  blood_pressure_diastolic?: string;
+  pulse_rate?: string;
+  respiratory_rate?: string;
+  oxygen_saturation?: string;
   weight?: string;
   height?: string;
-  spo2?: number;
-  respiratory_rate?: number;
-  tongue?: string;
-  throat?: string;
-  cns?: string;
-  rs?: string;
-  cvs?: string;
-  pa?: string;
+  bmi?: string;
+  pain_scale?: string;
+
+  // Physical Examination (optional)
+  general_appearance?: string;
+  consciousness_level?: string;
+  skin_condition?: string;
+  head_neck?: string;
+  cardiovascular?: string;
+  respiratory?: string;
+  abdomen?: string;
+  extremities?: string;
+  neurological?: string;
+
+  // Additional Fields (optional)
+  findings_notes?: string;
+  abnormalities?: string;
 }
 
-export interface VisitFindingUpdateData extends Partial<VisitFindingCreateData> {}
+// PATCH body uses Partial of create (same pattern you had)
+export interface FindingUpdateData extends Partial<FindingCreateData> {}
+
+// Slim version for list/table/preview cards
+// This didn’t exist in old code but it's in your new model, so we keep it.
+export interface FindingSummary {
+  id: number;
+  visit_id: number;
+  finding_type: FindingType;
+  recorded_at: string;
+  has_abnormalities: boolean;
+  vital_signs_summary?: string; // e.g. "BP 120/80, Temp 98.6°F"
+}
 
 // ============================================================================
 // VISIT ATTACHMENT TYPES

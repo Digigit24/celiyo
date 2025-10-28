@@ -109,7 +109,7 @@ export const protectedRoutes: AppRoute[] = [
         path: '/opd/bills',
         element: (
           <LazyWrapper>
-            <OpdBillsListPage />
+            <OpdBillsListPage open={false} onOpenChange={() => {}} billId={null} mode="view" />
           </LazyWrapper>
         ),
         title: 'OPD Bills',
@@ -118,7 +118,7 @@ export const protectedRoutes: AppRoute[] = [
         path: '/opd/clinical-notes',
         element: (
           <LazyWrapper>
-            <ClinicalNotesListPage />
+            <ClinicalNotesListPage initialFilters={{}} onApply={() => {}} />
           </LazyWrapper>
         ),
         title: 'Clinical Notes',
