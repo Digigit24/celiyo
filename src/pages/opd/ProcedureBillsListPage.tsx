@@ -21,6 +21,8 @@ import {
 
 // shared responsive table
 import { DataTable, DataTableColumn } from '@/components/DataTable';
+// Import the new drawer
+import ProcedureBillDrawer from '@/components/opd/ProcedureBillDrawer';
 
 // -----------------------
 // helpers / formatters
@@ -211,6 +213,11 @@ export default function ProcedureBillsListPage() {
   // separate local search input (debounced-ish)
   const [searchText, setSearchText] = useState(filters.search || '');
 
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<'create' | 'edit' | 'view' | 'collect'>('create');
+  const [selectedBillId, setSelectedBillId] = useState<number | null>(null);
+
   // update filters.search when user pauses typing
   useEffect(() => {
     const t = setTimeout(() => {
@@ -258,128 +265,158 @@ export default function ProcedureBillsListPage() {
     mutate();
   };
 
-  // stats across page
-  const { totalRevenue, totalReceived, totalPending, paidCount } = useMemo(() => {
-    let revenue = 0;
-    let received = 0;
-    let pending = 0;
-    let paid = 0;
+  // Drawer handlers
+  const handleCreateBill = () => {
+    setDrawerMode('create');
+    setSelectedBillId(null);
+    setDrawerOpen(true);
+  };
 
-    for (const b of procedureBills) {
-      revenue += parseFloat(b.total_amount || '0');
-      received += parseFloat(b.received_amount || '0');
-      pending += parseFloat(b.balance_amount || '0');
-      if (b.payment_status === 'paid') paid += 1;
-    }
-
-    return {
-      totalRevenue: revenue,
-      totalReceived: received,
-      totalPending: pending,
-      paidCount: paid,
-    };
-  }, [procedureBills]);
-
-  // row actions
   const handleViewBill = useCallback((bill: any) => {
-    console.log('view bill', bill.id);
-    // open bill drawer / print preview etc.
+    setDrawerMode('view');
+    setSelectedBillId(bill.id);
+    setDrawerOpen(true);
+  }, []);
+
+  const handleEditBill = useCallback((bill: any) => {
+    setDrawerMode('edit');
+    setSelectedBillId(bill.id);
+    setDrawerOpen(true);
   }, []);
 
   const handleCollectPayment = useCallback((bill: any) => {
-    console.log('collect payment for bill', bill.id);
-    // open payment modal etc.
+    setDrawerMode('collect');
+    setSelectedBillId(bill.id);
+    setDrawerOpen(true);
   }, []);
 
-  // -----------------------
-  // table columns (desktop)
-  // -----------------------
+  const handleDrawerClose = () => {
+    setDrawerOpen(false);
+    setSelectedBillId(null);
+  };
+
+  const handleDrawerSuccess = () => {
+    mutate(); // Refresh the list after successful operation
+  };
+
+  // derived metrics
+  const totalRevenue = useMemo(() => {
+    return procedureBills.reduce((sum: number, b: any) => {
+      const amt = parseFloat(b.total_amount);
+      return sum + (isNaN(amt) ? 0 : amt);
+    }, 0);
+  }, [procedureBills]);
+
+  const totalReceived = useMemo(() => {
+    return procedureBills.reduce((sum: number, b: any) => {
+      const amt = parseFloat(b.received_amount);
+      return sum + (isNaN(amt) ? 0 : amt);
+    }, 0);
+  }, [procedureBills]);
+
+  const totalPending = useMemo(() => {
+    return procedureBills.reduce((sum: number, b: any) => {
+      const amt = parseFloat(b.balance_amount);
+      return sum + (isNaN(amt) ? 0 : amt);
+    }, 0);
+  }, [procedureBills]);
+
+  const paidCount = useMemo(() => {
+    return procedureBills.filter((b: any) => b.payment_status === 'paid').length;
+  }, [procedureBills]);
+
+  // desktop table columns
   const columns = useMemo<DataTableColumn<any>[]>(() => {
     return [
       {
-        key: 'billno',
-        header: 'Bill #',
-        cell: (bill) => (
-          <div className="font-medium text-slate-900 leading-tight">
-            {bill.bill_number || `#${bill.id}`}
+        key: 'bill',
+        header: 'Bill No / Date',
+        cell: (b) => (
+          <div className="leading-tight">
+            <div className="font-medium text-slate-900 flex items-center gap-1 text-[13px]">
+              <Receipt className="h-3.5 w-3.5 text-slate-500" />
+              <span>{b.bill_number || `#${b.id}`}</span>
+            </div>
+            <div className="text-[11px] text-muted-foreground flex items-center gap-1 leading-tight">
+              <CalendarDays className="h-3 w-3 text-slate-400" />
+              <span>{formatDate(b.bill_date)}</span>
+            </div>
           </div>
         ),
       },
       {
         key: 'patient',
         header: 'Patient',
-        cell: (bill) => (
-          <div className="leading-tight">
-            <div className="text-slate-900 font-medium text-[13px]">
-              {bill.patient_name || '—'}
-            </div>
-            {bill.patient_phone ? (
-              <div className="text-[11px] text-slate-500 flex items-center gap-1 leading-tight">
+        cell: (b) => (
+          <div className="text-sm leading-tight">
+            <div className="font-medium text-slate-900">{b.patient_name || '—'}</div>
+            {b.patient_phone && (
+              <div className="text-[11px] text-muted-foreground flex items-center gap-1">
                 <Phone className="h-3 w-3 text-slate-400" />
-                <span>{bill.patient_phone}</span>
+                <span>{b.patient_phone}</span>
               </div>
-            ) : null}
-            {bill.visit ? (
-              <div className="text-[11px] text-slate-500 leading-tight">
-                Visit: {bill.visit}
-              </div>
-            ) : null}
-          </div>
-        ),
-      },
-      {
-        key: 'date',
-        header: 'Date',
-        cell: (bill) => (
-          <div className="whitespace-nowrap text-sm leading-tight">
-            {formatDate(bill.bill_date)}
+            )}
           </div>
         ),
       },
       {
         key: 'amounts',
-        header: 'Amount / Received / Bal',
-        className: 'min-w-[180px]',
-        cell: (bill) => (
-          <div className="whitespace-nowrap text-xs leading-tight">
-            <div className="text-slate-900 font-medium">
-              Total: {formatRupee(bill.total_amount)}
+        header: 'Amount / Received',
+        cell: (b) => (
+          <div className="text-sm leading-tight">
+            <div className="font-semibold text-slate-900">
+              {formatRupee(b.total_amount)}
             </div>
-            <div className="text-slate-700">
-              Recv: {formatRupee(bill.received_amount)}
+            <div className="text-[11px] text-green-600 leading-tight">
+              Rcvd: {formatRupee(b.received_amount)}
             </div>
-            <div className="text-slate-500">
-              Bal: {formatRupee(bill.balance_amount)}
-            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'balance',
+        header: 'Balance',
+        cell: (b) => (
+          <div className="text-sm font-semibold text-red-600">
+            {formatRupee(b.balance_amount)}
           </div>
         ),
       },
       {
         key: 'status',
         header: 'Status',
-        cell: (bill) => <StatusBadge status={bill.payment_status} />,
+        cell: (b) => <StatusBadge status={b.payment_status} />,
+      },
+      {
+        key: 'visit',
+        header: 'Visit',
+        cell: (b) => (
+          <div className="text-xs text-slate-600">
+            {b.visit ? `Visit #${b.visit}` : '—'}
+          </div>
+        ),
       },
     ];
   }, []);
 
-  // mobile card renderer (hook)
+  // mobile card
   const renderMobileCard = useProcedureBillMobileCard({
     onView: handleViewBill,
     onCollect: handleCollectPayment,
   });
 
-  // skeleton state like the others
-  if (!hasLoadedOnce && isLoading) {
+  // loading state (initial)
+  if (isLoading && !hasLoadedOnce) {
     return (
       <div className="p-4 md:p-8 space-y-6">
         {/* header skeleton */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center justify-between">
           <div className="space-y-2">
-            <div className="h-7 w-40 bg-gray-200 rounded animate-pulse" />
-            <div className="h-4 w-64 bg-gray-100 rounded animate-pulse" />
+            <div className="h-8 w-64 bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-80 bg-gray-100 rounded animate-pulse" />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <div className="h-9 w-24 bg-gray-100 rounded animate-pulse" />
+          <div className="flex gap-2">
+            <div className="h-9 w-24 bg-gray-200 rounded animate-pulse" />
             <div className="h-9 w-24 bg-gray-200 rounded animate-pulse" />
           </div>
         </div>
@@ -445,7 +482,11 @@ export default function ProcedureBillsListPage() {
             <RefreshCcw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
-          <Button size="sm" className="min-w-[90px]">
+          <Button 
+            size="sm" 
+            className="min-w-[90px]"
+            onClick={handleCreateBill}
+          >
             <Plus className="mr-2 h-4 w-4" />
             New Bill
           </Button>
@@ -635,6 +676,15 @@ export default function ProcedureBillsListPage() {
           </div>
         )}
       </div>
+
+      {/* Procedure Bill Drawer */}
+      <ProcedureBillDrawer
+        open={drawerOpen}
+        onClose={handleDrawerClose}
+        billId={selectedBillId}
+        mode={drawerMode}
+        onSuccess={handleDrawerSuccess}
+      />
     </div>
   );
 }

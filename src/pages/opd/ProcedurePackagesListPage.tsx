@@ -21,6 +21,8 @@ import {
 
 // shared responsive table component
 import { DataTable, DataTableColumn } from '@/components/DataTable';
+// Import the new drawer
+import PackageFormDrawer from '@/components/opd/PackageFormDrawer';
 
 // ---------- helpers ----------
 
@@ -96,6 +98,11 @@ export default function ProcedurePackagesListPage() {
     }
   }, [isLoading, error]);
 
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
+
   // derived summary metrics
   const activeCount = useMemo(
     () => procedurePackages.filter((p: any) => p.is_active).length,
@@ -141,21 +148,49 @@ export default function ProcedurePackagesListPage() {
     }));
   };
 
-  // row actions (view/edit/delete) -> hook up drawers/forms later
+  // Drawer handlers
+  const handleCreatePackage = () => {
+    setDrawerMode('create');
+    setSelectedPackageId(null);
+    setDrawerOpen(true);
+  };
+
   const handleViewPackage = useCallback((pkg: any) => {
-    console.log('view package', pkg.id);
-    // open drawer in view mode
+    setDrawerMode('view');
+    setSelectedPackageId(pkg.id);
+    setDrawerOpen(true);
   }, []);
 
   const handleEditPackage = useCallback((pkg: any) => {
-    console.log('edit package', pkg.id);
-    // open drawer in edit mode
+    setDrawerMode('edit');
+    setSelectedPackageId(pkg.id);
+    setDrawerOpen(true);
   }, []);
 
   const handleDeletePackage = useCallback(async (pkg: any) => {
-    console.log('delete package', pkg.id);
-    // soft-delete/deactivate etc then mutate()
-  }, []);
+    if (!confirm(`Are you sure you want to delete "${pkg.package_name}"?`)) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/opd/procedure-packages/${pkg.id}/`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete package');
+      mutate(); // Refresh the list
+    } catch (err) {
+      console.error('Delete failed:', err);
+      alert('Failed to delete package. Please try again.');
+    }
+  }, [mutate]);
+
+  const handleDrawerClose = () => {
+    setDrawerOpen(false);
+    setSelectedPackageId(null);
+  };
+
+  const handleDrawerSuccess = () => {
+    mutate(); // Refresh the list after successful create/edit
+  };
 
   // ---------- table columns (desktop) ----------
 
@@ -238,112 +273,70 @@ export default function ProcedurePackagesListPage() {
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <h3 className="font-semibold text-base leading-tight text-slate-900 flex items-center gap-1">
                   <Package className="h-4 w-4 text-slate-500" />
-                  <span>{p.package_name || '—'}</span>
+                  {p.package_name || '—'}
                 </h3>
-
-                <span className="text-[11px] text-slate-500 font-mono bg-slate-100 dark:bg-slate-900/40 rounded px-1 py-[1px]">
-                  {p.package_code || `#${p.id}`}
-                </span>
-              </div>
-
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] leading-tight text-slate-700">
                 <ActiveBadge active={!!p.is_active} />
-                <div className="flex items-center gap-1 font-medium text-slate-900 text-xs">
-                  <IndianRupee className="h-3.5 w-3.5 text-slate-500" />
-                  <span>{formatRupee(p.package_price)}</span>
-                </div>
-                {p.discount_percent && (
-                  <div className="flex items-center gap-1 text-[11px] text-slate-500">
-                    <Percent className="h-3 w-3 text-slate-400" />
-                    <span>{p.discount_percent}% off</span>
-                  </div>
-                )}
               </div>
-
-              <div className="text-[11px] text-muted-foreground flex items-center gap-1 leading-snug mt-2">
-                <Layers3 className="h-3 w-3 text-slate-400" />
-                <span>
-                  {p.total_procedures ?? p.procedures_count ?? p.items_count ?? '—'}{' '}
-                  procedures
-                </span>
-              </div>
-
-              {p.description && (
-                <div className="text-[11px] text-muted-foreground leading-snug mt-2 line-clamp-3">
-                  {p.description}
-                </div>
-              )}
+              <p className="text-xs text-muted-foreground font-mono">
+                {p.package_code || `#${p.id}`}
+              </p>
             </div>
-
-            {/* quick view button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={(e) => {
-                e.stopPropagation();
-                actions.view && actions.view();
-              }}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
           </div>
 
-          {/* footer actions */}
-          <div className="flex items-center justify-between pt-2 border-t text-xs">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <Package className="h-3.5 w-3.5 text-slate-400" />
-              <span>Package #{p.id}</span>
-            </span>
-
-            {actions.edit && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  actions.edit && actions.edit();
-                }}
-              >
-                Edit
-              </Button>
+          {/* Price / Discount */}
+          <div className="space-y-1">
+            <div className="flex items-center gap-1 text-sm font-semibold text-slate-900">
+              <IndianRupee className="h-4 w-4 text-slate-500" />
+              <span>{formatRupee(p.package_price)}</span>
+            </div>
+            {p.discount_percent && (
+              <div className="flex items-center gap-1 text-xs text-green-600">
+                <Percent className="h-3 w-3" />
+                <span>{p.discount_percent}% discount</span>
+              </div>
             )}
           </div>
 
-          {actions.askDelete && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-destructive h-7 text-xs p-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                actions.askDelete && actions.askDelete();
-              }}
-            >
-              Delete
-            </Button>
+          {/* Items count */}
+          <div className="flex items-center gap-1 text-xs text-slate-600">
+            <Layers3 className="h-3.5 w-3.5 text-slate-500" />
+            <span>
+              {p.total_procedures ?? p.procedures_count ?? p.items_count ?? 0}{' '}
+              procedures included
+            </span>
+          </div>
+
+          {/* Description */}
+          {p.description && (
+            <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
+              {p.description}
+            </p>
           )}
+
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-2 pt-2 border-t">
+            {actions}
+          </div>
         </div>
       );
     },
     []
   );
 
-  // ---------- skeleton before first load ----------
+  // ---------- loading state (initial) ----------
 
-  if (!hasLoadedOnce && isLoading) {
+  if (isLoading && !hasLoadedOnce) {
     return (
       <div className="p-4 md:p-8 space-y-6">
         {/* header skeleton */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center justify-between">
           <div className="space-y-2">
-            <div className="h-7 w-48 bg-gray-200 rounded animate-pulse" />
-            <div className="h-4 w-64 bg-gray-100 rounded animate-pulse" />
+            <div className="h-8 w-64 bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-80 bg-gray-100 rounded animate-pulse" />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <div className="h-9 w-24 bg-gray-100 rounded animate-pulse" />
+          <div className="flex gap-2">
             <div className="h-9 w-24 bg-gray-200 rounded animate-pulse" />
+            <div className="h-9 w-36 bg-gray-200 rounded animate-pulse" />
           </div>
         </div>
 
@@ -410,7 +403,11 @@ export default function ProcedurePackagesListPage() {
             <RefreshCcw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
-          <Button size="sm" className="min-w-[90px]">
+          <Button 
+            size="sm" 
+            className="min-w-[90px]"
+            onClick={handleCreatePackage}
+          >
             <Plus className="mr-2 h-4 w-4" />
             New Package
           </Button>
@@ -582,6 +579,15 @@ export default function ProcedurePackagesListPage() {
           </div>
         )}
       </div>
+
+      {/* Package Form Drawer */}
+      <PackageFormDrawer
+        open={drawerOpen}
+        onClose={handleDrawerClose}
+        packageId={selectedPackageId}
+        mode={drawerMode}
+        onSuccess={handleDrawerSuccess}
+      />
     </div>
   );
 }
