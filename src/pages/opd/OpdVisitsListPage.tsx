@@ -162,6 +162,16 @@ export default function OpdVisitsListPage() {
     setDrawerOpen(true);
   };
 
+  const handleConsultation = (visit: Visit) => {
+    // Navigate to consultation page with visit ID
+    navigate(`/consultation/${visit.id}`);
+  };
+
+  const handleBilling = (visit: Visit) => {
+    // Navigate to billing page with visit ID
+    navigate(`/opdbilling/${visit.id}`);
+  };
+
   const handleDrawerSuccess = () => {
     fetchData(); // Refresh data after create/update
   };
@@ -351,6 +361,32 @@ export default function OpdVisitsListPage() {
           >
             {visit.payment_status} - ₹{visit.total_amount}
           </Badge>
+        </div>
+
+        {/* Mobile action buttons */}
+        <div className="flex gap-2 pt-2">
+          {actions.consultation && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={actions.consultation}
+              className="flex-1"
+            >
+              <Stethoscope className="h-4 w-4 mr-1" />
+              Consult
+            </Button>
+          )}
+          {actions.billing && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={actions.billing}
+              className="flex-1"
+            >
+              <DollarSign className="h-4 w-4 mr-1" />
+              Billing
+            </Button>
+          )}
         </div>
       </div>
     </>
@@ -634,6 +670,8 @@ export default function OpdVisitsListPage() {
               onView={handleViewVisit}
               onEdit={handleEditVisit}
               onDelete={handleDeleteVisit}
+              onConsultation={handleConsultation}
+              onBilling={handleBilling}
               emptyTitle="No visits found"
               emptySubtitle="Start by adding a new visit or adjust your filters"
             />

@@ -6,11 +6,12 @@ import { OPD_API_CONFIG, buildOPDUrl } from '@/lib/apiConfig';
 import {
   getProcedurePackages,
   getProcedurePackageById,
-  createProcedurePackage,
-  updateProcedurePackage,
-  deleteProcedurePackage,
+  createProcedurePackage as createPackageService,
+  updateProcedurePackage as updatePackageService,
+  deleteProcedurePackage as deletePackageService,
 } from '@/services/opd/procedurePackage.service';
 import { DEFAULT_SWR_OPTIONS, buildQueryString } from './common.hooks';
+
 import type {
   ProcedurePackage,
   ProcedurePackageListParams,
@@ -19,16 +20,34 @@ import type {
   PaginatedResponse,
 } from '@/types/opd';
 
+/**
+ * Shape expectations:
+ *
+ * ProcedurePackageCreateData (POST):
+ * {
+ *   name: string;
+ *   code: string;
+ *   procedures: number[];          // [procedure_id, ...]
+ *   total_charge: string;          // "5000.00"
+ *   discounted_charge: string;     // "3999.00"
+ *   is_active: boolean;
+ * }
+ *
+ * ProcedurePackageUpdateData (PATCH):
+ * {
+ *   name?: string;
+ *   code?: string;
+ *   procedures?: number[];
+ *   total_charge?: string;
+ *   discounted_charge?: string;
+ *   is_active?: boolean;
+ * }
+ *
+ * Those should exist in your /types/opd definitions.
+ */
+
 // ==================== QUERY HOOKS ====================
 
-/**
- * Hook to fetch paginated procedure packages with filters
- * 
- * @example
- * const { procedurePackages, count, isLoading } = useProcedurePackages({ 
- *   is_active: true 
- * });
- */
 export function useProcedurePackages(params?: ProcedurePackageListParams) {
   const queryString = buildQueryString(params);
   const url = `${OPD_API_CONFIG.PROCEDURE_PACKAGES.LIST}${queryString}`;
@@ -48,12 +67,6 @@ export function useProcedurePackages(params?: ProcedurePackageListParams) {
   };
 }
 
-/**
- * Hook to fetch a single procedure package by ID
- * 
- * @example
- * const { procedurePackage, isLoading, mutate } = useProcedurePackage(123);
- */
 export function useProcedurePackage(id: number | null) {
   const url = id
     ? buildOPDUrl(OPD_API_CONFIG.PROCEDURE_PACKAGES.DETAIL, { id })
@@ -75,13 +88,6 @@ export function useProcedurePackage(id: number | null) {
   };
 }
 
-/**
- * Hook to fetch only active procedure packages
- * Useful for dropdowns and selection lists
- * 
- * @example
- * const { procedurePackages, isLoading } = useActiveProcedurePackages();
- */
 export function useActiveProcedurePackages() {
   const params: ProcedurePackageListParams = { is_active: true };
   const queryString = buildQueryString(params);
@@ -102,24 +108,29 @@ export function useActiveProcedurePackages() {
 
 // ==================== MUTATION HOOKS ====================
 
-/**
- * Hook to create a new procedure package
- * 
- * @example
- * const { createProcedurePackage, isCreating, error } = useCreateProcedurePackage();
- * await createProcedurePackage({
- *   name: 'Basic Health Checkup',
- *   code: 'PKG001',
- *   procedures: [1, 2, 3], // Array of procedure IDs
- *   total_charge: '2000',
- *   discounted_charge: '1500',
- * });
- */
+// CREATE (POST /procedure-packages/)
+//
+// usage in component:
+//   await createProcedurePackage({
+//     arg: {
+//       name: 'Basic Checkup',
+//       code: 'PKG001',
+//       procedures: [1,2,3],
+//       total_charge: '5000.00',
+//       discounted_charge: '3999.00',
+//       is_active: true,
+//     }
+//   })
+//
 export function useCreateProcedurePackage() {
   const { trigger, isMutating, error } = useSWRMutation(
     OPD_API_CONFIG.PROCEDURE_PACKAGES.CREATE,
-    async (_key: string, { arg }: { arg: ProcedurePackageCreateData }) =>
-      await createProcedurePackage(arg)
+    async (
+      _key: string,
+      { arg }: { arg: ProcedurePackageCreateData }
+    ) => {
+      return await createPackageService(arg);
+    }
   );
 
   return {
@@ -129,23 +140,29 @@ export function useCreateProcedurePackage() {
   };
 }
 
-/**
- * Hook to update a procedure package
- * 
- * @example
- * const { updateProcedurePackage, isUpdating, error } = useUpdateProcedurePackage(123);
- * await updateProcedurePackage({ 
- *   discounted_charge: '1400',
- *   is_active: false 
- * });
- */
+// UPDATE (PATCH /procedure-packages/:id/)
+//
+// usage in component:
+//   await updateProcedurePackage({
+//     arg: {
+//       // any fields you want to update
+//       total_charge: '4800.00',
+//       discounted_charge: '4300.00',
+//       is_active: false,
+//     }
+//   })
+//
 export function useUpdateProcedurePackage(id: number) {
   const url = buildOPDUrl(OPD_API_CONFIG.PROCEDURE_PACKAGES.UPDATE, { id });
 
   const { trigger, isMutating, error } = useSWRMutation(
     url,
-    async (_key: string, { arg }: { arg: ProcedurePackageUpdateData }) =>
-      await updateProcedurePackage(id, arg)
+    async (
+      _key: string,
+      { arg }: { arg: ProcedurePackageUpdateData }
+    ) => {
+      return await updatePackageService(id, arg);
+    }
   );
 
   return {
@@ -155,18 +172,19 @@ export function useUpdateProcedurePackage(id: number) {
   };
 }
 
-/**
- * Hook to delete a procedure package
- * 
- * @example
- * const { deleteProcedurePackage, isDeleting, error } = useDeleteProcedurePackage();
- * await deleteProcedurePackage(123);
- */
+// DELETE (DELETE /procedure-packages/:id/)
+//
+// usage in component:
+//   await deleteProcedurePackage({ arg: someId })
+//
+// we keep `{ arg }` so it's consistent with create/update
+//
 export function useDeleteProcedurePackage() {
   const { trigger, isMutating, error } = useSWRMutation(
     OPD_API_CONFIG.PROCEDURE_PACKAGES.LIST,
-    async (_key: string, { arg }: { arg: number }) =>
-      await deleteProcedurePackage(arg)
+    async (_key: string, { arg }: { arg: number }) => {
+      return await deletePackageService(arg);
+    }
   );
 
   return {

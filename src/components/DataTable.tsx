@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Eye, Edit, Trash2, Stethoscope, DollarSign } from 'lucide-react';
 
 // --------------------------------------
 // Types
@@ -61,6 +61,11 @@ export interface DataTableProps<T> {
   /** delete action (async allowed). if not provided, Delete is hidden */
   onDelete?: (row: T) => Promise<void> | void;
 
+  /** consultation action - shown as button */
+  onConsultation?: (row: T) => void;
+  /** billing action - shown as button */
+  onBilling?: (row: T) => void;
+
   /** optional: extra action items you want in dropdown */
   extraActions?: (row: T) => React.ReactNode;
 
@@ -74,6 +79,8 @@ export interface RowActions<T> {
   view?: () => void;
   edit?: () => void;
   askDelete?: () => void;
+  consultation?: () => void;
+  billing?: () => void;
   dropdown?: React.ReactNode;
 }
 
@@ -91,6 +98,8 @@ export function DataTable<T>({
   onView,
   onEdit,
   onDelete,
+  onConsultation,
+  onBilling,
   extraActions,
   emptyTitle = 'No records found',
   emptySubtitle = 'Try adjusting your filters or search criteria',
@@ -190,6 +199,8 @@ export function DataTable<T>({
               view: onView ? () => onView(row) : undefined,
               edit: onEdit ? () => onEdit(row) : undefined,
               askDelete: onDelete ? () => handleAskDelete(row) : undefined,
+              consultation: onConsultation ? () => onConsultation(row) : undefined,
+              billing: onBilling ? () => onBilling(row) : undefined,
             };
 
             return (
@@ -247,7 +258,7 @@ export function DataTable<T>({
               ))}
 
               {/* Actions header */}
-              {(onView || onEdit || onDelete || extraActions) && (
+              {(onView || onEdit || onDelete || onConsultation || onBilling || extraActions) && (
                 <TableHead className="font-medium text-right">
                   Actions
                 </TableHead>
@@ -268,6 +279,8 @@ export function DataTable<T>({
                 view: onView ? () => onView(row) : undefined,
                 edit: onEdit ? () => onEdit(row) : undefined,
                 askDelete: onDelete ? () => handleAskDelete(row) : undefined,
+                consultation: onConsultation ? () => onConsultation(row) : undefined,
+                billing: onBilling ? () => onBilling(row) : undefined,
               };
 
               return (
@@ -282,16 +295,43 @@ export function DataTable<T>({
                     </TableCell>
                   ))}
 
-                  {(onView || onEdit || onDelete || extraActions) && (
+                  {(onView || onEdit || onDelete || onConsultation || onBilling || extraActions) && (
                     <TableCell
                       className="text-right"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <RowDropdown
-                        row={row}
-                        rowActions={rowActions}
-                        extraActions={extraActions}
-                      />
+                      <div className="flex items-center justify-end gap-2">
+                        {/* Consultation Button */}
+                        {onConsultation && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onConsultation(row)}
+                          >
+                            <Stethoscope className="h-4 w-4 mr-1" />
+                            Consult
+                          </Button>
+                        )}
+
+                        {/* Billing Button */}
+                        {onBilling && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onBilling(row)}
+                          >
+                            <DollarSign className="h-4 w-4 mr-1" />
+                            Billing
+                          </Button>
+                        )}
+
+                        {/* Dropdown Menu */}
+                        <RowDropdown
+                          row={row}
+                          rowActions={rowActions}
+                          extraActions={extraActions}
+                        />
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>

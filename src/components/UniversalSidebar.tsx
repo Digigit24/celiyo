@@ -183,15 +183,15 @@ export function UniversalSidebar({
       <div className="h-16 flex items-center justify-between px-4 border-b border-border shrink-0">
         {!collapsed && (
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-foreground rounded-lg flex items-center justify-center">
-              <Stethoscope className="w-5 h-5 text-background" />
+            <div className="w-12 h-12 rounded-lg flex items-center justify-center">
+              <img src="https://jeevishapainclinic.com/assets/img/logo/jeevisha-clinic-new-logo.png" alt="" />
             </div>
             <span className="font-bold text-lg">HMS</span>
           </div>
         )}
         {collapsed && (
-          <div className="w-9 h-9 bg-foreground rounded-lg flex items-center justify-center mx-auto">
-            <Stethoscope className="w-5 h-5 text-background" />
+          <div className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto">
+            <img src="https://jeevishapainclinic.com/assets/img/logo/jeevisha-clinic-new-logo.png" alt="" />
           </div>
         )}
 

@@ -100,7 +100,7 @@ export default function ProcedurePackagesListPage() {
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerMode, setDrawerMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [drawerMode, setDrawerMode] = useState<'create' | 'edit' | 'view'>('view');
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
 
   // derived summary metrics
@@ -112,8 +112,13 @@ export default function ProcedurePackagesListPage() {
   const avgDiscount = useMemo(() => {
     if (!procedurePackages.length) return 0;
     const total = procedurePackages.reduce((sum: number, p: any) => {
-      const d = parseFloat(p.discount_percent);
-      return sum + (isNaN(d) ? 0 : d);
+      const totalCharge = parseFloat(p.total_charge || 0);
+      const discountedCharge = parseFloat(p.discounted_charge || 0);
+      if (totalCharge > 0) {
+        const discount = ((totalCharge - discountedCharge) / totalCharge) * 100;
+        return sum + discount;
+      }
+      return sum;
     }, 0);
     return total / procedurePackages.length;
   }, [procedurePackages]);
@@ -155,6 +160,13 @@ export default function ProcedurePackagesListPage() {
     setDrawerOpen(true);
   };
 
+  // This is called when clicking on the row
+  const handleRowClick = useCallback((pkg: any) => {
+    setDrawerMode('view');
+    setSelectedPackageId(pkg.id);
+    setDrawerOpen(true);
+  }, []);
+
   const handleViewPackage = useCallback((pkg: any) => {
     setDrawerMode('view');
     setSelectedPackageId(pkg.id);
@@ -168,7 +180,7 @@ export default function ProcedurePackagesListPage() {
   }, []);
 
   const handleDeletePackage = useCallback(async (pkg: any) => {
-    if (!confirm(`Are you sure you want to delete "${pkg.package_name}"?`)) {
+    if (!confirm(`Are you sure you want to delete "${pkg.name}"?`)) {
       return;
     }
     try {
@@ -203,11 +215,11 @@ export default function ProcedurePackagesListPage() {
           <div className="leading-tight">
             <div className="font-medium text-slate-900 flex items-center gap-1 text-[13px]">
               <Package className="h-3.5 w-3.5 text-slate-500" />
-              <span>{p.package_name || '—'}</span>
+              <span>{p.name || '—'}</span>
             </div>
             <div className="text-[11px] text-muted-foreground flex items-center gap-1 leading-tight">
               <span className="text-xs text-slate-500 font-mono bg-slate-100 dark:bg-slate-900/40 rounded px-1 py-[1px]">
-                {p.package_code || `#${p.id}`}
+                {p.code || `#${p.id}`}
               </span>
             </div>
           </div>
@@ -216,18 +228,36 @@ export default function ProcedurePackagesListPage() {
       {
         key: 'pricing',
         header: 'Price / Discount',
-        cell: (p) => (
-          <div className="text-sm leading-tight text-slate-900 font-medium space-y-1">
-            <div className="flex items-center gap-1 whitespace-nowrap">
-              <IndianRupee className="h-3.5 w-3.5 text-slate-500" />
-              <span>{formatRupee(p.package_price)}</span>
+        cell: (p) => {
+          const totalCharge = parseFloat(p.total_charge || 0);
+          const discountedCharge = parseFloat(p.discounted_charge || 0);
+          const savings = parseFloat(p.savings || 0);
+          const discountPercent = totalCharge > 0 
+            ? ((savings / totalCharge) * 100).toFixed(1)
+            : '0';
+          
+          return (
+            <div className="text-sm leading-tight space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 whitespace-nowrap font-medium text-slate-900">
+                  <IndianRupee className="h-3.5 w-3.5 text-slate-500" />
+                  <span>{formatRupee(discountedCharge)}</span>
+                </div>
+                {totalCharge > discountedCharge && (
+                  <span className="text-xs text-slate-400 line-through">
+                    {formatRupee(totalCharge)}
+                  </span>
+                )}
+              </div>
+              {savings > 0 && (
+                <div className="flex items-center gap-1 text-xs text-green-600 whitespace-nowrap leading-tight">
+                  <Percent className="h-3 w-3" />
+                  <span>{discountPercent}% off · Save {formatRupee(savings)}</span>
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-1 text-xs text-slate-500 whitespace-nowrap leading-tight">
-              <Percent className="h-3 w-3 text-slate-400" />
-              <span>{p.discount_percent ? `${p.discount_percent}% off` : '—'}</span>
-            </div>
-          </div>
-        ),
+          );
+        },
       },
       {
         key: 'count',
@@ -236,8 +266,7 @@ export default function ProcedurePackagesListPage() {
           <div className="text-xs text-slate-700 leading-tight flex items-center gap-1">
             <Layers3 className="h-3.5 w-3.5 text-slate-500" />
             <span>
-              {p.total_procedures ?? p.procedures_count ?? p.items_count ?? '—'}{' '}
-              procedures
+              {p.procedure_count ?? 0} procedure{p.procedure_count !== 1 ? 's' : ''}
             </span>
           </div>
         ),
@@ -247,17 +276,6 @@ export default function ProcedurePackagesListPage() {
         header: 'Status',
         cell: (p) => <ActiveBadge active={!!p.is_active} />,
       },
-      {
-        key: 'desc',
-        header: 'Description',
-        className: 'w-[300px]',
-        cell: (p) => (
-          <div className="text-xs text-slate-700 leading-snug line-clamp-3 flex items-start gap-1">
-            <Info className="h-3.5 w-3.5 text-slate-400 flex-shrink-0 mt-[2px]" />
-            <span>{p.description || '—'}</span>
-          </div>
-        ),
-      },
     ];
   }, []);
 
@@ -265,6 +283,13 @@ export default function ProcedurePackagesListPage() {
 
   const renderMobileCard = useCallback(
     (p: any, actions: any) => {
+      const totalCharge = parseFloat(p.total_charge || 0);
+      const discountedCharge = parseFloat(p.discounted_charge || 0);
+      const savings = parseFloat(p.savings || 0);
+      const discountPercent = totalCharge > 0 
+        ? ((savings / totalCharge) * 100).toFixed(1)
+        : '0';
+
       return (
         <div className="space-y-3 text-sm">
           {/* Header row */}
@@ -273,26 +298,33 @@ export default function ProcedurePackagesListPage() {
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <h3 className="font-semibold text-base leading-tight text-slate-900 flex items-center gap-1">
                   <Package className="h-4 w-4 text-slate-500" />
-                  {p.package_name || '—'}
+                  {p.name || '—'}
                 </h3>
                 <ActiveBadge active={!!p.is_active} />
               </div>
               <p className="text-xs text-muted-foreground font-mono">
-                {p.package_code || `#${p.id}`}
+                {p.code || `#${p.id}`}
               </p>
             </div>
           </div>
 
           {/* Price / Discount */}
           <div className="space-y-1">
-            <div className="flex items-center gap-1 text-sm font-semibold text-slate-900">
-              <IndianRupee className="h-4 w-4 text-slate-500" />
-              <span>{formatRupee(p.package_price)}</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-sm font-semibold text-slate-900">
+                <IndianRupee className="h-4 w-4 text-slate-500" />
+                <span>{formatRupee(discountedCharge)}</span>
+              </div>
+              {totalCharge > discountedCharge && (
+                <span className="text-xs text-slate-400 line-through">
+                  {formatRupee(totalCharge)}
+                </span>
+              )}
             </div>
-            {p.discount_percent && (
+            {savings > 0 && (
               <div className="flex items-center gap-1 text-xs text-green-600">
                 <Percent className="h-3 w-3" />
-                <span>{p.discount_percent}% discount</span>
+                <span>{discountPercent}% discount · Save {formatRupee(savings)}</span>
               </div>
             )}
           </div>
@@ -301,17 +333,9 @@ export default function ProcedurePackagesListPage() {
           <div className="flex items-center gap-1 text-xs text-slate-600">
             <Layers3 className="h-3.5 w-3.5 text-slate-500" />
             <span>
-              {p.total_procedures ?? p.procedures_count ?? p.items_count ?? 0}{' '}
-              procedures included
+              {p.procedure_count ?? 0} procedure{p.procedure_count !== 1 ? 's' : ''} included
             </span>
           </div>
-
-          {/* Description */}
-          {p.description && (
-            <p className="text-xs text-muted-foreground leading-snug line-clamp-2">
-              {p.description}
-            </p>
-          )}
 
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2 pt-2 border-t">
@@ -507,10 +531,10 @@ export default function ProcedurePackagesListPage() {
                 }
               >
                 <option value="default">Sort: Default</option>
-                <option value="package_name">Name (A-Z)</option>
-                <option value="-package_name">Name (Z-A)</option>
-                <option value="package_price">Price (Low-High)</option>
-                <option value="-package_price">Price (High-Low)</option>
+                <option value="name">Name (A-Z)</option>
+                <option value="-name">Name (Z-A)</option>
+                <option value="discounted_charge">Price (Low-High)</option>
+                <option value="-discounted_charge">Price (High-Low)</option>
                 <option value="-created_at">Newest First</option>
                 <option value="created_at">Oldest First</option>
               </select>
@@ -539,7 +563,7 @@ export default function ProcedurePackagesListPage() {
             columns={columns}
             getRowId={(p: any) => p.id}
             getRowLabel={(p: any) =>
-              p.package_name || p.package_code || `Package #${p.id}`
+              p.name || p.code || `Package #${p.id}`
             }
             onView={handleViewPackage}
             onEdit={handleEditPackage}

@@ -37,7 +37,7 @@ export const UniversalHeader = ({
   const { logout, user } = useAuth();
   const { theme, setTheme } = useTheme();
 
-  const pageTitle = routeTitles[location.pathname] || "HMS";
+  const pageTitle = routeTitles[location.pathname] || "Good Evening Admin 👋";
 
   const handleLogout = () => {
     logout();
