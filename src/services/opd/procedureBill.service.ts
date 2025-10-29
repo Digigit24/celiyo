@@ -8,9 +8,13 @@ import type {
   ProcedureBillListParams,
   PaymentRecordData,
   ProcedureBillItem,
+  
+} from '@/types/opd/procedureBill.types';
+import type {
+ 
   PaginatedResponse,
   ApiResponse,
-} from '@/types/opd.types';
+} from '@/types/opd/common.types';
 
 // ==================== PROCEDURE BILLS ====================
 

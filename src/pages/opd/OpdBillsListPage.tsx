@@ -1,293 +1,226 @@
-// src/components/billing/BillDrawer.tsx
-
-import { useEffect, useState } from 'react';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
+// src/pages/opd/OpdBillsListPage.tsx
+import { useState } from 'react';
+import { useOPDBills } from '@/hooks/useOPD';
+import type { OPDBillListParams, PaymentStatus, OPDType } from '@/types/opd.types';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { RefreshCcw, Plus } from 'lucide-react';
 
-// you'll likely replace these with real service hooks
-// e.g. getOPDBillById, createOPDBill, updateOPDBill, etc.
-async function mockFetchBillById(id: number) {
-  // placeholder shape
-  return {
-    id,
-    bill_number: `BILL-${id}`,
-    patient_name: 'John Doe',
-    patient_phone: '9876543210',
-    bill_date: '2025-01-01',
-    total_amount: '1500.00',
-    paid_amount: '500.00',
-    due_amount: '1000.00',
-    opd_type: 'consultation',
-    payment_status: 'partial',
-    line_items: [
-      { desc: 'Consultation', amount: 1000 },
-      { desc: 'Procedure', amount: 500 },
-    ],
+export default function OpdBillsListPage() {
+  const [filters, setFilters] = useState<OPDBillListParams>({
+    page: 1,
+    payment_status: undefined,
+    opd_type: undefined,
+    search: '',
+  });
+
+  const { opdBills, count, next, previous, isLoading, error, mutate } = useOPDBills(filters);
+
+  const handleFilterChange = (key: keyof OPDBillListParams, value: any) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value === 'all' ? undefined : value,
+      page: 1,
+    }));
   };
-}
 
-interface BillDrawerProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  billId: number | null;
-  mode: 'create' | 'view' | 'edit';
-  onSuccess?: () => void;
-}
+  const handleRefresh = () => {
+    mutate();
+  };
 
-export default function BillDrawer({
-  open,
-  onOpenChange,
-  billId,
-  mode,
-  onSuccess,
-}: BillDrawerProps) {
-  const [loading, setLoading] = useState(false);
-  const [billData, setBillData] = useState<any | null>(null);
-
-  // load bill when opening in view/edit mode
-  useEffect(() => {
-    if (open && billId && mode !== 'create') {
-      loadBill();
-    }
-    if (open && mode === 'create') {
-      // reset for fresh bill
-      setBillData({
-        bill_date: new Date().toISOString().split('T')[0],
-        patient_name: '',
-        patient_phone: '',
-        opd_type: 'consultation',
-        line_items: [],
-        total_amount: '0.00',
-        paid_amount: '0.00',
-        due_amount: '0.00',
-        payment_status: 'unpaid',
-      });
-    }
-  }, [open, billId, mode]);
-
-  async function loadBill() {
-    if (!billId) return;
-    try {
-      setLoading(true);
-      const data = await mockFetchBillById(billId);
-      setBillData(data);
-    } catch (err: any) {
-      toast.error('Failed to load bill');
-    } finally {
-      setLoading(false);
-    }
+  if (isLoading) {
+    return (
+      <div className="p-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-64 bg-gray-100 rounded"></div>
+        </div>
+      </div>
+    );
   }
 
-  function handleClose() {
-    onOpenChange(false);
+  if (error) {
+    return (
+      <div className="p-8">
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+          <h2 className="font-semibold mb-2">Error Loading OPD Bills</h2>
+          <p>{error?.message || 'Failed to load OPD bills'}</p>
+          <Button onClick={handleRefresh} className="mt-4" variant="outline">
+            <RefreshCcw className="mr-2 h-4 w-4" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
   }
-
-  // TODO: wire to real create / update API
-  async function handleSaveOrUpdate() {
-    try {
-      toast.success(
-        mode === 'create' ? 'Bill created' : 'Bill updated'
-      );
-      onSuccess?.();
-      handleClose();
-    } catch (err: any) {
-      toast.error('Failed to save bill');
-    }
-  }
-
-  const title =
-    mode === 'create'
-      ? 'Create OPD Bill'
-      : mode === 'edit'
-      ? `Edit Bill #${billData?.bill_number || billId || ''}`
-      : `Bill Details #${billData?.bill_number || billId || ''}`;
-
-  const canEdit = mode === 'create' || mode === 'edit';
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg flex flex-col">
-        <SheetHeader className="border-b pb-4 mb-4">
-          <SheetTitle>{title}</SheetTitle>
-          <SheetDescription className="text-xs text-muted-foreground">
-            {mode === 'create'
-              ? 'Generate and record a new OPD bill.'
-              : 'View billing details, payments, and patient info.'}
-          </SheetDescription>
-        </SheetHeader>
-
-        {/* BODY */}
-        <div className="flex-1 overflow-y-auto pr-1 space-y-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : billData ? (
-            <div className="space-y-4 text-sm">
-              {/* Patient Section */}
-              <div className="border rounded-lg p-4">
-                <div className="text-xs uppercase text-muted-foreground font-medium mb-2">
-                  Patient
-                </div>
-                <div className="space-y-1">
-                  <div className="font-medium text-base leading-tight">
-                    {billData.patient_name || '—'}
-                  </div>
-                  <div className="text-muted-foreground text-[12px] leading-tight">
-                    {billData.patient_phone || '—'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Billing Meta */}
-              <div className="border rounded-lg p-4">
-                <div className="text-xs uppercase text-muted-foreground font-medium mb-2">
-                  Bill Info
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-[13px] leading-tight">
-                  <div>
-                    <div className="text-muted-foreground text-[11px]">
-                      Bill Date
-                    </div>
-                    <div className="font-medium">
-                      {billData.bill_date || '—'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-muted-foreground text-[11px]">
-                      Type
-                    </div>
-                    <div className="font-medium capitalize">
-                      {billData.opd_type || '—'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-muted-foreground text-[11px]">
-                      Total
-                    </div>
-                    <div className="font-medium">
-                      ₹{billData.total_amount || '0.00'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-muted-foreground text-[11px]">
-                      Paid
-                    </div>
-                    <div className="font-medium">
-                      ₹{billData.paid_amount || '0.00'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-muted-foreground text-[11px]">
-                      Due
-                    </div>
-                    <div className="font-medium text-red-600">
-                      ₹{billData.due_amount || '0.00'}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-muted-foreground text-[11px]">
-                      Status
-                    </div>
-                    <div className="font-medium capitalize">
-                      {billData.payment_status || 'unpaid'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Line Items */}
-              <div className="border rounded-lg p-4">
-                <div className="text-xs uppercase text-muted-foreground font-medium mb-2 flex items-center justify-between">
-                  <span>Items</span>
-                  {canEdit && (
-                    <Button
-                      size="sm"
-                      className="h-6 px-2 text-[11px]"
-                      variant="outline"
-                      onClick={() => {
-                        // placeholder for "Add Item"
-                        toast.info('Add item clicked');
-                      }}
-                    >
-                      + Add Item
-                    </Button>
-                  )}
-                </div>
-
-                {billData.line_items && billData.line_items.length > 0 ? (
-                  <div className="space-y-2 text-[13px]">
-                    {billData.line_items.map(
-                      (item: any, idx: number) => (
-                        <div
-                          key={idx}
-                          className="flex items-start justify-between border rounded p-2"
-                        >
-                          <div className="flex-1 pr-2">
-                            <div className="font-medium leading-tight">
-                              {item.desc || 'Untitled'}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground leading-tight">
-                              ₹{item.amount?.toFixed?.(2) ?? item.amount}
-                            </div>
-                          </div>
-
-                          {canEdit && (
-                            <Button
-                              size="sm"
-                              className="h-6 px-2 text-[11px]"
-                              variant="ghost"
-                              onClick={() => {
-                                toast.info('Edit item clicked');
-                              }}
-                            >
-                              Edit
-                            </Button>
-                          )}
-                        </div>
-                      )
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-[12px] text-muted-foreground">
-                    No items yet.
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground text-center py-8">
-              No bill data
-            </div>
-          )}
+    <div className="p-8 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">OPD Bills</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage OPD consultation bills and payments
+          </p>
         </div>
-
-        {/* FOOTER ACTIONS */}
-        <div className="border-t pt-4 mt-4 flex justify-end gap-2">
-          <Button variant="outline" onClick={handleClose}>
-            Close
+        <div className="flex gap-2">
+          <Button onClick={handleRefresh} variant="outline" size="sm">
+            <RefreshCcw className="mr-2 h-4 w-4" />
+            Refresh
           </Button>
-
-          {canEdit && (
-            <Button onClick={handleSaveOrUpdate}>
-              {mode === 'create' ? 'Save Bill' : 'Update Bill'}
-            </Button>
-          )}
+          <Button size="sm">
+            <Plus className="mr-2 h-4 w-4" />
+            New Bill
+          </Button>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white border rounded-lg p-4">
+          <p className="text-sm text-muted-foreground">Total Bills</p>
+          <p className="text-2xl font-bold">{count}</p>
+        </div>
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <p className="text-sm text-green-600">Paid</p>
+          <p className="text-2xl font-bold text-green-700">
+            {opdBills.filter((b) => b.payment_status === 'paid').length}
+          </p>
+        </div>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p className="text-sm text-yellow-600">Partial</p>
+          <p className="text-2xl font-bold text-yellow-700">
+            {opdBills.filter((b) => b.payment_status === 'partial').length}
+          </p>
+        </div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-sm text-red-600">Unpaid</p>
+          <p className="text-2xl font-bold text-red-700">
+            {opdBills.filter((b) => b.payment_status === 'unpaid').length}
+          </p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white border rounded-lg p-6">
+        <h2 className="text-lg font-semibold mb-4">Filters</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Search */}
+          <div className="space-y-2">
+            <Label htmlFor="search">Search</Label>
+            <Input
+              id="search"
+              placeholder="Bill number, patient name..."
+              value={filters.search || ''}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+            />
+          </div>
+
+          {/* Payment Status Filter */}
+          <div className="space-y-2">
+            <Label htmlFor="payment_status">Payment Status</Label>
+            <Select
+              value={filters.payment_status || 'all'}
+              onValueChange={(value) => handleFilterChange('payment_status', value)}
+            >
+              <SelectTrigger id="payment_status">
+                <SelectValue placeholder="All Payment Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Payment Status</SelectItem>
+                <SelectItem value="unpaid">Unpaid</SelectItem>
+                <SelectItem value="partial">Partial</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* OPD Type Filter */}
+          <div className="space-y-2">
+            <Label htmlFor="opd_type">OPD Type</Label>
+            <Select
+              value={filters.opd_type || 'all'}
+              onValueChange={(value) => handleFilterChange('opd_type', value)}
+            >
+              <SelectTrigger id="opd_type">
+                <SelectValue placeholder="All OPD Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All OPD Types</SelectItem>
+                <SelectItem value="consultation">Consultation</SelectItem>
+                <SelectItem value="follow_up">Follow Up</SelectItem>
+                <SelectItem value="emergency">Emergency</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Bill Date Filter */}
+          <div className="space-y-2">
+            <Label htmlFor="bill_date">Bill Date</Label>
+            <Input
+              id="bill_date"
+              type="date"
+              value={filters.bill_date || ''}
+              onChange={(e) => handleFilterChange('bill_date', e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 text-sm text-muted-foreground">
+          <strong>Total Bills:</strong> {count} | <strong>Current Page:</strong> {filters.page || 1}
+        </div>
+      </div>
+
+      {/* Bills List - Raw JSON */}
+      <div className="bg-white border rounded-lg p-6">
+        <h2 className="text-lg font-semibold mb-4">OPD Bills (Raw API Response)</h2>
+        <div className="bg-gray-50 p-4 rounded overflow-auto max-h-[600px]">
+          <pre className="text-xs">
+            {JSON.stringify(
+              {
+                count,
+                next,
+                previous,
+                results: opdBills,
+              },
+              null,
+              2
+            )}
+          </pre>
+        </div>
+      </div>
+
+      {/* Pagination */}
+      {(next || previous) && (
+        <div className="flex items-center justify-between bg-white border rounded-lg p-4">
+          <Button
+            variant="outline"
+            disabled={!previous}
+            onClick={() => handleFilterChange('page', (filters.page || 1) - 1)}
+          >
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {filters.page || 1}
+          </span>
+          <Button
+            variant="outline"
+            disabled={!next}
+            onClick={() => handleFilterChange('page', (filters.page || 1) + 1)}
+          >
+            Next
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

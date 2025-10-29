@@ -7,9 +7,14 @@ import type {
   VisitUpdateData,
   VisitListParams,
   VisitStatistics,
+ 
+} from '@/types/opd/visit.types';
+
+import type {
+ 
   PaginatedResponse,
   ApiResponse,
-} from '@/types/opd.types';
+} from '@/types/opd/common.types';
 
 // ==================== VISITS ====================
 

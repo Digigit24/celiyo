@@ -6,9 +6,14 @@ import type {
   ProcedurePackageCreateData,
   ProcedurePackageUpdateData,
   ProcedurePackageListParams,
+ 
+} from '@/types/opd/procedurePackage.types';
+
+import type {
+ 
   PaginatedResponse,
   ApiResponse,
-} from '@/types/opd.types';
+} from '@/types/opd/common.types';
 
 // ==================== PROCEDURE PACKAGES ====================
 

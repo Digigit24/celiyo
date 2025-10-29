@@ -8,7 +8,7 @@ import type {
   VisitFindingListParams,
   PaginatedResponse,
   ApiResponse,
-} from '@/types/opd.types';
+} from '@/types/opd';
 
 // ==================== VISIT FINDINGS ====================
 

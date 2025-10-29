@@ -6,9 +6,13 @@ import type {
   ClinicalNoteCreateData,
   ClinicalNoteUpdateData,
   ClinicalNoteListParams,
+ 
+} from '@/types/opd/clinicalNote.types';
+import type {
+ 
   PaginatedResponse,
   ApiResponse,
-} from '@/types/opd.types';
+} from '@/types/opd/common.types';
 
 // ==================== CLINICAL NOTES ====================
 

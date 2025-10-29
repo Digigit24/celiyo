@@ -7,9 +7,14 @@ import type {
   OPDBillUpdateData,
   OPDBillListParams,
   PaymentRecordData,
+  
+} from '@/types/opd/opdBill.types';
+
+import type {
+ 
   PaginatedResponse,
   ApiResponse,
-} from '@/types/opd.types';
+} from '@/types/opd/common.types';
 
 // ==================== OPD BILLS ====================
 

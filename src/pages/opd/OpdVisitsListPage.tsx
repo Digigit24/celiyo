@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-is-mobile';
-import type { Visit, VisitListParams, VisitStatistics } from '@/types/opd.types';
+import type { Visit, VisitListParams, VisitStatistics } from '@/types/opd/visit.types';
 import { getVisits, getTodayVisits, getVisitQueue, getVisitStatistics } from '@/services/opd/visit.service';
 import { getPatients } from '@/services/patient.service';
 import type { PatientProfile as Patient } from '@/types/patient.types';

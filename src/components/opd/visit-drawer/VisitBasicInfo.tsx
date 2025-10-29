@@ -36,7 +36,7 @@ import { cn } from '@/lib/utils';
 import { getPatients, createPatient } from '@/services/patient.service';
 import { getDoctors } from '@/services/doctor.service';
 import { createVisit, updateVisit } from '@/services/opd/visit.service';
-import type { Visit, VisitType, VisitStatus, VisitCreateData } from '@/types/opd.types';
+import type { Visit, VisitType, VisitStatus, VisitCreateData } from '@/types/opd/visit.types';
 import type { PatientProfile, PatientGender, PatientCreateData } from '@/types/patient.types';
 import type { Doctor } from '@/types/doctor.types';
 

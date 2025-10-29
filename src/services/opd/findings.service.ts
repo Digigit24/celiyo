@@ -4,13 +4,18 @@ import apiClient from '@/api/client';
 import { API_CONFIG, buildUrl } from '@/lib/apiConfig';
 
 import type {
-  Finding,
-  FindingCreateData,
-  FindingUpdateData,
-  FindingListParams,
+  VisitFinding as  Finding,
+  VisitFindingCreateData as FindingCreateData ,
+  VisitFindingUpdateData as FindingUpdateData,
+  VisitFindingListParams as FindingListParams,
+ 
+} from '@/types/opd/visitFinding.types';
+
+import type {
+ 
   PaginatedResponse,
   ApiResponse,
-} from '@/types/opd.types';
+} from '@/types/opd/common.types';
 
 /**
  * Fetch a paginated list of findings (vital signs, physical exams, etc.)

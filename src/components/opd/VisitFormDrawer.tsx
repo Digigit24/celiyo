@@ -5,7 +5,7 @@ import { Pencil, Trash2, Activity, FileText, Paperclip, Stethoscope } from 'luci
 import { toast } from 'sonner';
 
 import { getVisitById, deleteVisit } from '@/services/opd/visit.service';
-import type { Visit } from '@/types/opd.types';
+import type { Visit } from '@/types/opd/visit.types';
 
 import VisitBasicInfo, { type VisitBasicInfoRef } from './visit-drawer/VisitBasicInfo';
 import VisitFindingsTab from './visit-drawer/VisitFindingsTab';

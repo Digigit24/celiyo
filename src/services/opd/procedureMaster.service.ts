@@ -6,9 +6,14 @@ import type {
   ProcedureMasterCreateData,
   ProcedureMasterUpdateData,
   ProcedureMasterListParams,
+ 
+} from '@/types/opd/procedureMaster.types';
+
+import type {
+ 
   PaginatedResponse,
   ApiResponse,
-} from '@/types/opd.types';
+} from '@/types/opd/common.types';
 
 // ==================== PROCEDURE MASTERS ====================
 

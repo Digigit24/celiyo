@@ -1,7 +1,7 @@
 // src/components/opd/VisitDetailDrawer.tsx
 import { useEffect, useState } from 'react';
 import { useVisit, useUpdateVisit } from '@/hooks/useOPD';
-import type { Visit, VisitStatus } from '@/types/opd.types';
+import type { Visit, VisitStatus } from '@/types/opd/visit.types';
 import {
   Sheet,
   SheetContent,

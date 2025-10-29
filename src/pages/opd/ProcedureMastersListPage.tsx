@@ -1,7 +1,7 @@
 // src/pages/opd/ProcedureMastersListPage.tsx
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useProcedureMasters } from '@/hooks/useOPD';
-import type { ProcedureMasterListParams } from '@/types/opd.types';
+import { useProcedureMasters } from '@/hooks/opd/useProcedureMaster.hooks';
+import type { ProcedureMasterListParams } from '@/types/opd/procedureMaster.types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,25 +10,24 @@ import {
   RefreshCcw,
   Plus,
   FileText,
-  ClipboardSignature,
-  ShieldCheck,
   CheckCircle2,
   XCircle,
   Banknote,
   Layers3,
-  Building2,
   Eye,
 } from 'lucide-react';
 
-// shared responsive table like Patients
+// DataTable component
 import { DataTable, DataTableColumn } from '@/components/DataTable';
+
+// Import the drawer
+import ProcedureMasterFormDrawer from '@/components/opd/ProcedureMasterFormDrawer';
 
 // ------------------ helpers ------------------
 
-function formatRupee(value: number | string | undefined | null) {
+function formatRupee(value: string | number | undefined | null) {
   if (value === undefined || value === null) return '₹0.00';
-  const num =
-    typeof value === 'string' ? parseFloat(value as string) : (value as number);
+  const num = typeof value === 'string' ? parseFloat(value) : value;
   if (isNaN(num)) return '₹0.00';
   return `₹${num.toLocaleString('en-IN', {
     minimumFractionDigits: 2,
@@ -59,25 +58,29 @@ function ActiveStatusBadge({ is_active }: { is_active: boolean }) {
   );
 }
 
-function ConsentBadge({ requires_consent }: { requires_consent: boolean }) {
-  if (!requires_consent) {
-    return (
-      <Badge
-        variant="outline"
-        className="text-[10px] font-medium flex items-center gap-1 text-slate-600 border-slate-300 bg-slate-50"
-      >
-        <ShieldCheck className="h-3 w-3" />
-        No Consent Req.
-      </Badge>
-    );
-  }
+function CategoryBadge({ category }: { category: string }) {
+  const categoryColors: Record<string, string> = {
+    laboratory: 'bg-blue-100 text-blue-700 border-blue-200',
+    radiology: 'bg-purple-100 text-purple-700 border-purple-200',
+    cardiology: 'bg-red-100 text-red-700 border-red-200',
+    pathology: 'bg-green-100 text-green-700 border-green-200',
+    ultrasound: 'bg-cyan-100 text-cyan-700 border-cyan-200',
+    ct_scan: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+    mri: 'bg-pink-100 text-pink-700 border-pink-200',
+    ecg: 'bg-orange-100 text-orange-700 border-orange-200',
+    xray: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    other: 'bg-gray-100 text-gray-700 border-gray-200',
+  };
+
+  const colorClass = categoryColors[category] || categoryColors.other;
+  const displayName = category.replace('_', ' ').toUpperCase();
+
   return (
     <Badge
       variant="outline"
-      className="text-[10px] font-medium flex items-center gap-1 text-orange-700 border-orange-300 bg-orange-50"
+      className={`text-[10px] font-medium border ${colorClass}`}
     >
-      <ClipboardSignature className="h-3 w-3" />
-      Consent Needed
+      {displayName}
     </Badge>
   );
 }
@@ -85,13 +88,17 @@ function ConsentBadge({ requires_consent }: { requires_consent: boolean }) {
 // ------------------ component ------------------
 
 export default function ProcedureMastersListPage() {
+  // Drawer state
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<'view' | 'edit' | 'create'>('view');
+
   // server filters
   const [filters, setFilters] = useState<ProcedureMasterListParams>({
     page: 1,
     is_active: undefined,
     search: '',
     category: undefined,
-    department: undefined,
   });
 
   // separate local search text for debounce
@@ -141,22 +148,41 @@ export default function ProcedureMastersListPage() {
     mutate();
   };
 
-  // row actions (to plug into drawers later)
+  // Handle create
+  const handleCreate = useCallback(() => {
+    setSelectedId(null);
+    setDrawerMode('create');
+    setDrawerOpen(true);
+  }, []);
+
+  // Handle view
   const handleViewProcedure = useCallback((proc: any) => {
-    console.log('view procedure', proc.id);
-    // open detail drawer in view mode
+    setSelectedId(proc.id);
+    setDrawerMode('view');
+    setDrawerOpen(true);
   }, []);
 
+  // Handle edit (called from within drawer)
   const handleEditProcedure = useCallback((proc: any) => {
-    console.log('edit procedure', proc.id);
-    // open drawer in edit mode
+    setSelectedId(proc.id);
+    setDrawerMode('edit');
+    setDrawerOpen(true);
   }, []);
 
+  // Handle delete (called from within drawer)
   const handleDeleteProcedure = useCallback(async (proc: any) => {
+    // This will be handled inside the drawer
     console.log('delete procedure', proc.id);
-    // delete API (soft-delete or deactivate), then mutate()
   }, []);
 
+  // Handle success (after create/update/delete)
+  const handleSuccess = useCallback(() => {
+    mutate(); // Refresh list
+  }, [mutate]);
+
+  // CRITICAL FIX: Move ALL hooks BEFORE any conditional returns
+  // This ensures hooks are called in the same order every render
+  
   // ------------------ desktop table columns ------------------
   const columns = useMemo<DataTableColumn<any>[]>(() => {
     return [
@@ -169,7 +195,7 @@ export default function ProcedureMastersListPage() {
               <FileText className="h-3.5 w-3.5 text-slate-500" />
               <span>{p.name || '—'}</span>
             </div>
-            <div className="text-[11px] text-muted-foreground flex items-center gap-1 leading-tight">
+            <div className="text-[11px] text-muted-foreground flex items-center gap-1 leading-tight mt-0.5">
               <span className="text-xs text-slate-500 font-mono bg-slate-100 dark:bg-slate-900/40 rounded px-1 py-[1px]">
                 {p.code || `#${p.id}`}
               </span>
@@ -179,38 +205,29 @@ export default function ProcedureMastersListPage() {
       },
       {
         key: 'category',
-        header: 'Category / Dept',
+        header: 'Category',
         cell: (p) => (
-          <div className="text-xs leading-tight text-slate-700">
-            <div className="flex items-center gap-1 text-[12px] font-medium text-slate-900">
-              <Layers3 className="h-3.5 w-3.5 text-slate-500" />
-              <span>{p.category || '—'}</span>
-            </div>
-            <div className="flex items-center gap-1 text-[11px] text-muted-foreground leading-tight">
-              <Building2 className="h-3 w-3 text-slate-400" />
-              <span>{p.department || '—'}</span>
-            </div>
+          <div className="flex items-center gap-1">
+            <Layers3 className="h-3.5 w-3.5 text-slate-500" />
+            <CategoryBadge category={p.category} />
           </div>
         ),
       },
       {
-        key: 'pricing',
-        header: 'Base Price',
+        key: 'charge',
+        header: 'Default Charge',
         cell: (p) => (
           <div className="text-sm text-slate-900 font-medium flex items-center gap-1 whitespace-nowrap leading-tight">
             <Banknote className="h-3.5 w-3.5 text-slate-500" />
-            <span>{formatRupee(p.base_price)}</span>
+            <span>{formatRupee(p.default_charge)}</span>
           </div>
         ),
       },
       {
-        key: 'flags',
-        header: 'Status / Consent',
+        key: 'status',
+        header: 'Status',
         cell: (p) => (
-          <div className="flex flex-col gap-1 text-xs">
-            <ActiveStatusBadge is_active={!!p.is_active} />
-            <ConsentBadge requires_consent={!!p.requires_consent} />
-          </div>
+          <ActiveStatusBadge is_active={!!p.is_active} />
         ),
       },
       {
@@ -218,7 +235,7 @@ export default function ProcedureMastersListPage() {
         header: 'Description',
         className: 'w-[300px]',
         cell: (p) => (
-          <div className="text-xs text-slate-700 leading-snug line-clamp-3">
+          <div className="text-xs text-slate-700 leading-snug line-clamp-2">
             {p.description || '—'}
           </div>
         ),
@@ -246,19 +263,11 @@ export default function ProcedureMastersListPage() {
               </div>
 
               <div className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-2 leading-snug">
-                <div className="flex items-center gap-1">
-                  <Layers3 className="h-3 w-3 text-slate-400" />
-                  <span>{p.category || '—'}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Building2 className="h-3 w-3 text-slate-400" />
-                  <span>{p.department || '—'}</span>
-                </div>
+                <CategoryBadge category={p.category} />
               </div>
 
-              <div className="mt-2 flex flex-wrap items-center gap-2">
+              <div className="mt-2">
                 <ActiveStatusBadge is_active={!!p.is_active} />
-                <ConsentBadge requires_consent={!!p.requires_consent} />
               </div>
             </div>
 
@@ -276,11 +285,11 @@ export default function ProcedureMastersListPage() {
             </Button>
           </div>
 
-          {/* Price + Desc */}
+          {/* Charge + Desc */}
           <div className="space-y-2">
             <div className="text-sm font-medium leading-snug text-slate-900 flex items-center gap-1">
               <Banknote className="h-4 w-4 text-slate-500" />
-              <span>{formatRupee(p.base_price)}</span>
+              <span>{formatRupee(p.default_charge)}</span>
             </div>
 
             {p.description ? (
@@ -294,11 +303,10 @@ export default function ProcedureMastersListPage() {
             )}
           </div>
 
-          {/* Footer row: Edit + Delete shortcuts */}
+          {/* Footer row */}
           <div className="flex items-center justify-between pt-2 border-t text-xs">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <ClipboardSignature className="h-3.5 w-3.5 text-slate-400" />
-              <span>Procedure #{p.id}</span>
+            <span className="text-muted-foreground">
+              ID: {p.id}
             </span>
 
             {actions.edit && (
@@ -315,27 +323,36 @@ export default function ProcedureMastersListPage() {
               </Button>
             )}
           </div>
-
-          {actions.askDelete && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-destructive h-7 text-xs p-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                actions.askDelete && actions.askDelete();
-              }}
-            >
-              Delete
-            </Button>
-          )}
         </div>
       );
     },
     []
   );
 
-  // ------------------ INITIAL SKELETON ------------------
+  // Group procedures by category for summary (moved before conditional returns)
+  const categoryGroups = useMemo(() => {
+    const groups: Record<string, number> = {};
+    procedureMasters.forEach((p: any) => {
+      groups[p.category] = (groups[p.category] || 0) + 1;
+    });
+    return groups;
+  }, [procedureMasters]);
+
+  // Calculate average charge (moved before conditional returns)
+  const averageCharge = useMemo(() => {
+    if (procedureMasters.length === 0) return 0;
+    return procedureMasters.reduce((sum: number, p: any) => 
+      sum + parseFloat(p.default_charge || '0'), 0) / procedureMasters.length;
+  }, [procedureMasters]);
+
+  // Count active procedures (moved before conditional returns)
+  const activeCount = useMemo(() => {
+    return procedureMasters.filter((p: any) => p.is_active).length;
+  }, [procedureMasters]);
+
+  // ------------------ NOW safe to do conditional returns ------------------
+  
+  // INITIAL SKELETON
   if (!hasLoadedOnce && isLoading) {
     return (
       <div className="p-4 md:p-8 space-y-6">
@@ -373,7 +390,7 @@ export default function ProcedureMastersListPage() {
     );
   }
 
-  // ------------------ ERROR STATE ------------------
+  // ERROR STATE
   if (error) {
     return (
       <div className="p-4 md:p-8">
@@ -412,7 +429,7 @@ export default function ProcedureMastersListPage() {
             <RefreshCcw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
-          <Button size="sm" className="min-w-[90px]">
+          <Button size="sm" className="min-w-[90px]" onClick={handleCreate}>
             <Plus className="mr-2 h-4 w-4" />
             New Procedure
           </Button>
@@ -428,22 +445,20 @@ export default function ProcedureMastersListPage() {
 
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <p className="text-sm text-green-600">Active</p>
-          <p className="text-2xl font-bold text-green-700">
-            {procedureMasters.filter((p: any) => p.is_active).length}
-          </p>
-        </div>
-
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <p className="text-sm text-orange-600">Requires Consent</p>
-          <p className="text-2xl font-bold text-orange-700">
-            {procedureMasters.filter((p: any) => p.requires_consent).length}
-          </p>
+          <p className="text-2xl font-bold text-green-700">{activeCount}</p>
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-blue-600">Categories</p>
           <p className="text-2xl font-bold text-blue-700">
-            {new Set(procedureMasters.map((p: any) => p.category)).size}
+            {Object.keys(categoryGroups).length}
+          </p>
+        </div>
+
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <p className="text-sm text-purple-600">Avg. Charge</p>
+          <p className="text-2xl font-bold text-purple-700">
+            {formatRupee(averageCharge)}
           </p>
         </div>
       </div>
@@ -467,14 +482,14 @@ export default function ProcedureMastersListPage() {
             </p>
           </div>
 
-          {/* right side filters (search / category / department / status) */}
+          {/* right side filters (search / category / status) */}
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
             {/* search */}
             <div className="flex flex-col">
               <Input
                 id="search"
                 className="h-9 w-[220px] md:w-[200px] lg:w-[220px]"
-                placeholder="Search code / name / desc"
+                placeholder="Search code / name"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
               />
@@ -493,20 +508,7 @@ export default function ProcedureMastersListPage() {
               />
             </div>
 
-            {/* department filter */}
-            <div className="flex flex-col">
-              <Input
-                id="department"
-                className="h-9 w-[160px] text-xs"
-                placeholder="Department"
-                value={filters.department || ''}
-                onChange={(e) =>
-                  handleFilterChange('department', e.target.value || undefined)
-                }
-              />
-            </div>
-
-            {/* status dropdown (native select styled via Input) */}
+            {/* status dropdown */}
             <div className="flex flex-col">
               <select
                 id="is_active"
@@ -598,6 +600,16 @@ export default function ProcedureMastersListPage() {
           </div>
         )}
       </div>
+
+      {/* Form Drawer - Handles view/edit/create */}
+      <ProcedureMasterFormDrawer
+        itemId={selectedId}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        mode={drawerMode}
+        onModeChange={setDrawerMode}
+        onSuccess={handleSuccess}
+      />
     </div>
   );
 }
