@@ -1,4 +1,4 @@
-// src/pages/opd/ProcedureMastersListPage.tsx
+// src/pages/opd/ProcedureMastersListPage.tsx - UPDATED VERSION
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useProcedureMasters } from '@/hooks/opd/useProcedureMaster.hooks';
 import type { ProcedureMasterListParams } from '@/types/opd/procedureMaster.types';
@@ -150,13 +150,15 @@ export default function ProcedureMastersListPage() {
 
   // Handle create
   const handleCreate = useCallback(() => {
+    console.log('Opening drawer for CREATE');
     setSelectedId(null);
     setDrawerMode('create');
     setDrawerOpen(true);
   }, []);
 
-  // Handle view
+  // Handle view - SIMPLIFIED (no complex state transitions)
   const handleViewProcedure = useCallback((proc: any) => {
+    console.log('Opening drawer for VIEW:', proc.id);
     setSelectedId(proc.id);
     setDrawerMode('view');
     setDrawerOpen(true);
@@ -164,6 +166,7 @@ export default function ProcedureMastersListPage() {
 
   // Handle edit (called from within drawer)
   const handleEditProcedure = useCallback((proc: any) => {
+    console.log('Opening drawer for EDIT:', proc.id);
     setSelectedId(proc.id);
     setDrawerMode('edit');
     setDrawerOpen(true);
@@ -602,7 +605,9 @@ export default function ProcedureMastersListPage() {
       </div>
 
       {/* Form Drawer - Handles view/edit/create */}
+      {/* Adding key prop to force remount when switching between different procedures */}
       <ProcedureMasterFormDrawer
+        key={`${selectedId}-${drawerMode}`}
         itemId={selectedId}
         open={drawerOpen}
         onOpenChange={setDrawerOpen}

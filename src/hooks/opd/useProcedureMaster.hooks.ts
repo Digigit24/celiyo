@@ -11,6 +11,7 @@ import {
   deleteProcedureMaster,
 } from '@/services/opd/procedureMaster.service';
 import { DEFAULT_SWR_OPTIONS, buildQueryString } from './common.hooks';
+
 import type {
   ProcedureMaster,
   ProcedureMasterListParams,
@@ -19,24 +20,137 @@ import type {
   PaginatedResponse,
 } from '@/types/opd';
 
-// ==================== QUERY HOOKS ====================
-
 /**
- * Hook to fetch paginated procedure masters with filters
- * 
- * @example
- * const { procedureMasters, count, isLoading } = useProcedureMasters({ 
- *   category: 'laboratory',
- *   is_active: true 
- * });
+ * Take whatever backend gives us and force it into the shape
+ * our UI (drawer) expects.
  */
+function normalizeProcedureMaster(raw: any): ProcedureMaster {
+  if (!raw || typeof raw !== 'object') {
+    return {
+      // fallback safe object
+      id: 0,
+      code: '',
+      name: '',
+      category: 'laboratory',
+      description: '',
+      default_charge: '0.00',
+      is_active: true,
+      created_at: null,
+      updated_at: null,
+    } as unknown as ProcedureMaster;
+  }
+
+  // some backends send fields flat (code, name, default_charge ...)
+  // some send "procedure_code", "procedure_name", "price", etc.
+  // some wrap inside `procedure: { ... }`
+  const base = raw.procedure ?? raw; // prefer nested `procedure` if present
+
+  const id =
+    raw.id ??
+    base.id ??
+    raw.pk ??
+    0;
+
+  const code =
+    base.code ??
+    base.procedure_code ??
+    raw.code ??
+    raw.procedure_code ??
+    '';
+
+  const name =
+    base.name ??
+    base.procedure_name ??
+    raw.name ??
+    raw.procedure_name ??
+    '';
+
+  const category =
+    base.category ??
+    raw.category ??
+    'laboratory';
+
+  const description =
+    base.description ??
+    base.details ??
+    raw.description ??
+    raw.details ??
+    '';
+
+  // default_charge may come as `default_charge`, `price`, `procedure_price`, etc.
+  const default_charge_raw =
+    base.default_charge ??
+    base.price ??
+    base.procedure_price ??
+    raw.default_charge ??
+    raw.price ??
+    raw.procedure_price ??
+    '0.00';
+
+  // force to string with 2 decimals if possible
+  let default_charge = '0.00';
+  if (
+    default_charge_raw !== undefined &&
+    default_charge_raw !== null &&
+    default_charge_raw !== ''
+  ) {
+    const num = parseFloat(String(default_charge_raw));
+    default_charge = isNaN(num)
+      ? '0.00'
+      : num.toFixed(2);
+  }
+
+  const is_active =
+    base.is_active ??
+    base.active ??
+    raw.is_active ??
+    raw.active ??
+    true;
+
+  const created_at =
+    raw.created_at ??
+    base.created_at ??
+    null;
+
+  const updated_at =
+    raw.updated_at ??
+    base.updated_at ??
+    null;
+
+  return {
+    ...raw, // keep any extra fields from backend so details tab can still read them if needed
+    id,
+    code,
+    name,
+    category,
+    description,
+    default_charge,
+    is_active,
+    created_at,
+    updated_at,
+  } as ProcedureMaster;
+}
+
+// ===== LIST HOOK ===================================================
+
 export function useProcedureMasters(params?: ProcedureMasterListParams) {
   const queryString = buildQueryString(params);
   const url = `${OPD_API_CONFIG.PROCEDURE_MASTERS.LIST}${queryString}`;
 
   const { data, error, isLoading, mutate } = useSWR<
     PaginatedResponse<ProcedureMaster>
-  >(url, () => getProcedureMasters(params), DEFAULT_SWR_OPTIONS);
+  >(
+    url,
+    async () => {
+      const resp = await getProcedureMasters(params);
+      // normalize each item in the list so table + drawer both get same shape
+      return {
+        ...resp,
+        results: (resp?.results || []).map(normalizeProcedureMaster),
+      } as PaginatedResponse<ProcedureMaster>;
+    },
+    DEFAULT_SWR_OPTIONS
+  );
 
   return {
     procedureMasters: data?.results || [],
@@ -49,52 +163,73 @@ export function useProcedureMasters(params?: ProcedureMasterListParams) {
   };
 }
 
-/**
- * Hook to fetch a single procedure master by ID
- * 
- * @example
- * const { procedureMaster, isLoading, mutate } = useProcedureMaster(123);
- */
+// ===== SINGLE ITEM HOOK ============================================
+
 export function useProcedureMaster(id: number | null) {
-  const url = id
+  const shouldFetch = typeof id === 'number' && id > 0;
+
+  const url = shouldFetch
     ? buildOPDUrl(OPD_API_CONFIG.PROCEDURE_MASTERS.DETAIL, { id })
     : null;
 
-  const { data, error, isLoading, mutate } = useSWR<ProcedureMaster>(
+  const fetcher = async () => {
+    if (!shouldFetch) return undefined;
+
+    const record = await getProcedureMasterById(id as number);
+
+    // normalize before returning
+    return normalizeProcedureMaster(record);
+  };
+
+  const {
+    data,
+    error,
+    isLoading,
+    isValidating,
+    mutate,
+  } = useSWR<ProcedureMaster | undefined>(
     url,
-    () => (id ? getProcedureMasterById(id) : null),
+    fetcher,
     {
       revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      shouldRetryOnError: false,
+      dedupingInterval: 0,
     }
   );
 
+  const isFetching = shouldFetch && (isLoading || isValidating);
+
   return {
-    procedureMaster: data || null,
-    isLoading,
+    procedureMaster: data ?? null,
+    isLoading: isFetching,
     error,
     mutate,
   };
 }
 
-/**
- * Hook to fetch only active procedure masters
- * Useful for dropdowns and selection lists
- * 
- * @example
- * const { procedureMasters, isLoading } = useActiveProcedureMasters('laboratory');
- */
+// ===== ACTIVE LIST HOOK (convenience) ==============================
+
 export function useActiveProcedureMasters(category?: string) {
   const params: ProcedureMasterListParams = { is_active: true };
-  if (category) {
-    params.category = category;
-  }
+  if (category) params.category = category;
 
   const queryString = buildQueryString(params);
   const url = `${OPD_API_CONFIG.PROCEDURE_MASTERS.LIST}${queryString}`;
 
   const { data, error, isLoading, mutate } = useSWR<
     PaginatedResponse<ProcedureMaster>
-  >(url, () => getProcedureMasters(params), DEFAULT_SWR_OPTIONS);
+  >(
+    url,
+    async () => {
+      const resp = await getProcedureMasters(params);
+      return {
+        ...resp,
+        results: (resp?.results || []).map(normalizeProcedureMaster),
+      } as PaginatedResponse<ProcedureMaster>;
+    },
+    DEFAULT_SWR_OPTIONS
+  );
 
   return {
     procedureMasters: data?.results || [],
@@ -105,25 +240,14 @@ export function useActiveProcedureMasters(category?: string) {
   };
 }
 
-// ==================== MUTATION HOOKS ====================
+// ===== MUTATION HOOKS ==============================================
 
-/**
- * Hook to create a new procedure master
- * 
- * @example
- * const { createProcedureMaster, isCreating, error } = useCreateProcedureMaster();
- * await createProcedureMaster({
- *   name: 'Complete Blood Count',
- *   code: 'CBC001',
- *   category: 'laboratory',
- *   default_charge: '500',
- * });
- */
 export function useCreateProcedureMaster() {
   const { trigger, isMutating, error } = useSWRMutation(
     OPD_API_CONFIG.PROCEDURE_MASTERS.CREATE,
-    async (_key: string, { arg }: { arg: ProcedureMasterCreateData }) =>
-      await createProcedureMaster(arg)
+    async (_key: string, { arg }: { arg: ProcedureMasterCreateData }) => {
+      return await createProcedureMaster(arg);
+    }
   );
 
   return {
@@ -133,23 +257,14 @@ export function useCreateProcedureMaster() {
   };
 }
 
-/**
- * Hook to update a procedure master
- * 
- * @example
- * const { updateProcedureMaster, isUpdating, error } = useUpdateProcedureMaster(123);
- * await updateProcedureMaster({ 
- *   default_charge: '550',
- *   is_active: false 
- * });
- */
 export function useUpdateProcedureMaster(id: number) {
   const url = buildOPDUrl(OPD_API_CONFIG.PROCEDURE_MASTERS.UPDATE, { id });
 
   const { trigger, isMutating, error } = useSWRMutation(
     url,
-    async (_key: string, { arg }: { arg: ProcedureMasterUpdateData }) =>
-      await updateProcedureMaster(id, arg)
+    async (_key: string, { arg }: { arg: ProcedureMasterUpdateData }) => {
+      return await updateProcedureMaster(id, arg);
+    }
   );
 
   return {
@@ -159,18 +274,12 @@ export function useUpdateProcedureMaster(id: number) {
   };
 }
 
-/**
- * Hook to delete a procedure master
- * 
- * @example
- * const { deleteProcedureMaster, isDeleting, error } = useDeleteProcedureMaster();
- * await deleteProcedureMaster(123);
- */
 export function useDeleteProcedureMaster() {
   const { trigger, isMutating, error } = useSWRMutation(
     OPD_API_CONFIG.PROCEDURE_MASTERS.LIST,
-    async (_key: string, { arg }: { arg: number }) =>
-      await deleteProcedureMaster(arg)
+    async (_key: string, { arg }: { arg: number }) => {
+      return await deleteProcedureMaster(arg);
+    }
   );
 
   return {

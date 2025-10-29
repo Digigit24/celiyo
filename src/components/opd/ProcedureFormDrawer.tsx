@@ -1,5 +1,6 @@
 // src/components/opd/ProcedureFormDrawer.tsx
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { X, Save, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +33,11 @@ interface ProcedureFormData {
   is_active: boolean;
 }
 
+interface ProcedureApiResponse {
+  // we don't know exact backend shape, so keep it loose
+  [key: string]: any;
+}
+
 interface ProcedureFormDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -40,7 +46,7 @@ interface ProcedureFormDrawerProps {
   onSuccess?: () => void;
 }
 
-const initialFormData: ProcedureFormData = {
+const EMPTY_FORM: ProcedureFormData = {
   name: '',
   code: '',
   description: '',
@@ -57,6 +63,118 @@ const initialFormData: ProcedureFormData = {
   is_active: true,
 };
 
+/**
+ * Take raw backend data and map it into the exact shape our form uses.
+ * Edit this mapping so it matches your API payload fields.
+ */
+function normalizeProcedure(data: ProcedureApiResponse): ProcedureFormData {
+  if (!data || typeof data !== 'object') {
+    return { ...EMPTY_FORM };
+  }
+
+  // Try multiple possible keys for each field.
+  // Adjust these fallbacks to match your actual API.
+  const name =
+    data.name ??
+    data.procedure_name ??
+    '';
+
+  const code =
+    data.code ??
+    data.procedure_code ??
+    '';
+
+  const description =
+    data.description ??
+    data.details ??
+    data.procedure_description ??
+    '';
+
+  const category =
+    data.category ??
+    data.procedure_category ??
+    '';
+
+  const department =
+    data.department ??
+    data.department_name ??
+    data.department_display ??
+    '';
+
+  const basePriceRaw =
+    data.base_price ??
+    data.price ??
+    data.default_charge ??
+    data.procedure_price ??
+    '';
+
+  const durationRaw =
+    data.duration_minutes ??
+    data.duration ??
+    '';
+
+  const requires_consent =
+    data.requires_consent ??
+    data.needs_consent ??
+    false;
+
+  const consent_form_template =
+    data.consent_form_template ??
+    data.consent_template ??
+    '';
+
+  const pre_procedure_instructions =
+    data.pre_procedure_instructions ??
+    data.pre_instructions ??
+    '';
+
+  const post_procedure_instructions =
+    data.post_procedure_instructions ??
+    data.post_instructions ??
+    '';
+
+  const complications =
+    data.complications ??
+    data.risks ??
+    '';
+
+  const contraindications =
+    data.contraindications ??
+    data.not_recommended_for ??
+    '';
+
+  const is_active =
+    data.is_active ??
+    data.active ??
+    true;
+
+  return {
+    name: String(name),
+    code: String(code),
+    description: String(description),
+    category: String(category),
+    department: String(department),
+
+    base_price:
+      basePriceRaw === null || basePriceRaw === undefined
+        ? ''
+        : String(basePriceRaw),
+
+    duration_minutes:
+      durationRaw === null || durationRaw === undefined
+        ? ''
+        : String(durationRaw),
+
+    requires_consent: Boolean(requires_consent),
+    consent_form_template: String(consent_form_template),
+    pre_procedure_instructions: String(pre_procedure_instructions),
+    post_procedure_instructions: String(post_procedure_instructions),
+    complications: String(complications),
+    contraindications: String(contraindications),
+    is_active: Boolean(is_active),
+  };
+}
+
 export default function ProcedureFormDrawer({
   open,
   onClose,
@@ -64,7 +182,7 @@ export default function ProcedureFormDrawer({
   mode,
   onSuccess,
 }: ProcedureFormDrawerProps) {
-  const [formData, setFormData] = useState<ProcedureFormData>(initialFormData);
+  const [formData, setFormData] = useState<ProcedureFormData>(EMPTY_FORM);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,115 +192,177 @@ export default function ProcedureFormDrawer({
   const isEditMode = mode === 'edit';
   const isCreateMode = mode === 'create';
 
-  // Fetch procedure data when editing or viewing
-  useEffect(() => {
-    if (open && procedureId && (isEditMode || isViewMode)) {
-      fetchProcedureData();
-    } else if (open && isCreateMode) {
-      setFormData(initialFormData);
-      setError(null);
-      setValidationErrors({});
+  /**
+   * Fetch a single procedure from the API and hydrate form
+   */
+  const fetchProcedureData = useCallback(async () => {
+    if (!procedureId || !(isEditMode || isViewMode)) {
+      console.log('No procedureId or not in edit/view mode, skipping fetch');
+      return;
     }
-  }, [open, procedureId, mode]);
 
-  const fetchProcedureData = async () => {
     setIsLoading(true);
     setError(null);
-    try {
-      // Replace with your actual API endpoint
-      const response = await fetch(`/api/opd/procedure-masters/${procedureId}/`);
-      if (!response.ok) throw new Error('Failed to fetch procedure data');
-      const data = await response.json();
-      
-      setFormData({
-        name: data.name || '',
-        code: data.code || '',
-        description: data.description || '',
-        category: data.category || '',
-        department: data.department || '',
-        base_price: data.base_price?.toString() || '',
-        duration_minutes: data.duration_minutes?.toString() || '',
-        requires_consent: data.requires_consent || false,
-        consent_form_template: data.consent_form_template || '',
-        pre_procedure_instructions: data.pre_procedure_instructions || '',
-        post_procedure_instructions: data.post_procedure_instructions || '',
-        complications: data.complications || '',
-        contraindications: data.contraindications || '',
-        is_active: data.is_active ?? true,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load procedure data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
+    try {
+      console.log('Fetching procedure data for ID:', procedureId);
+      const res = await fetch(`/api/opd/procedure-masters/${procedureId}/`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('Fetch procedure response status:', res);
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch procedure data');
+      }
+
+      const data = (await res.json()) as ProcedureApiResponse;
+
+      // normalize from backend -> form state
+      const normalized = normalizeProcedure(data);
+
+      setFormData(normalized);
+    } catch (err: any) {
+      setError(
+        err?.message || 'Failed to load procedure data'
+      );
+      // if fetch fails, keep whatever we had
+    } finally {
+        setIsLoading(false);
+    }
+  }, [procedureId, isEditMode, isViewMode]);
+
+  /**
+   * Sync behavior on drawer open / mode change
+   */
+useEffect(() => {
+    console.log('-------------------------0');
+  if (open && isCreateMode) {
+    console.log('1');
+    setFormData(EMPTY_FORM);
+    setValidationErrors({});
+    setError(null);
+    setIsLoading(false);
+    return;
+  }
+
+  if (open && procedureId && (isEditMode || isViewMode)) {
+    console.log('2');
+    fetchProcedureData();
+    return;
+  }
+
+  if (!open) {
+    console.log('3');
+    setFormData(EMPTY_FORM);
+    setValidationErrors({});
+    setError(null);
+    setIsLoading(false);
+    setIsSaving(false);
+  }
+}, [open, isCreateMode, isEditMode, isViewMode, procedureId, fetchProcedureData]);
+
+
+  /**
+   * Generic change handler
+   */
   const handleChange = (
     field: keyof ProcedureFormData,
     value: string | boolean
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear validation error for this field
+
+    // clear per-field validation error on edit
     if (validationErrors[field]) {
       setValidationErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
+        const next = { ...prev };
+        delete next[field];
+        return next;
       });
     }
   };
 
+  /**
+   * Validate required fields before save
+   */
   const validateForm = (): boolean => {
-    const errors: Record<string, string> = {};
+    const nextErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      errors.name = 'Procedure name is required';
+      nextErrors.name = 'Procedure name is required';
     }
     if (!formData.code.trim()) {
-      errors.code = 'Procedure code is required';
+      nextErrors.code = 'Procedure code is required';
     }
     if (!formData.category.trim()) {
-      errors.category = 'Category is required';
+      nextErrors.category = 'Category is required';
     }
     if (!formData.department.trim()) {
-      errors.department = 'Department is required';
+      nextErrors.department = 'Department is required';
     }
     if (!formData.base_price.trim()) {
-      errors.base_price = 'Base price is required';
-    } else if (isNaN(parseFloat(formData.base_price)) || parseFloat(formData.base_price) < 0) {
-      errors.base_price = 'Please enter a valid price';
+      nextErrors.base_price = 'Base price is required';
+    } else if (
+      isNaN(parseFloat(formData.base_price)) ||
+      parseFloat(formData.base_price) < 0
+    ) {
+      nextErrors.base_price = 'Please enter a valid price';
     }
 
-    if (formData.duration_minutes && (isNaN(parseInt(formData.duration_minutes)) || parseInt(formData.duration_minutes) < 0)) {
-      errors.duration_minutes = 'Please enter a valid duration';
+    if (
+      formData.duration_minutes &&
+      (isNaN(parseInt(formData.duration_minutes)) ||
+        parseInt(formData.duration_minutes) < 0)
+    ) {
+      nextErrors.duration_minutes = 'Please enter a valid duration';
     }
 
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    setValidationErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
+  /**
+   * Submit create / update
+   */
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsSaving(true);
     setError(null);
 
     try {
+      // what we send to API
       const payload = {
-        ...formData,
+        // use API field names, not UI names
+        // adjust this block so it matches what your backend accepts
+        name: formData.name,
+        code: formData.code,
+        description: formData.description,
+        category: formData.category,
+        department: formData.department,
         base_price: parseFloat(formData.base_price),
-        duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
+        duration_minutes: formData.duration_minutes
+          ? parseInt(formData.duration_minutes)
+          : null,
+        requires_consent: formData.requires_consent,
+        consent_form_template: formData.consent_form_template,
+        pre_procedure_instructions: formData.pre_procedure_instructions,
+        post_procedure_instructions: formData.post_procedure_instructions,
+        complications: formData.complications,
+        contraindications: formData.contraindications,
+        is_active: formData.is_active,
       };
 
       const url = isEditMode
         ? `/api/opd/procedure-masters/${procedureId}/`
         : '/api/opd/procedure-masters/';
-      
+
       const method = isEditMode ? 'PATCH' : 'POST';
 
-      const response = await fetch(url, {
+      const res = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -190,29 +370,33 @@ export default function ProcedureFormDrawer({
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to save procedure');
+      if (!res.ok) {
+        let message = 'Failed to save procedure';
+        try {
+          const errJson = await res.json();
+          // DRF often returns { detail: "..."} or field errors as {field:["msg"]}
+          if (errJson.detail) message = errJson.detail;
+        } catch {
+          // ignore parse fail
+        }
+        throw new Error(message);
       }
 
-      // Success!
       onSuccess?.();
       onClose();
-      setFormData(initialFormData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while saving');
+    } catch (err: any) {
+      setError(err?.message || 'An error occurred while saving');
     } finally {
       setIsSaving(false);
     }
   };
 
+  /**
+   * Close handler
+   */
   const handleClose = () => {
-    if (!isSaving) {
-      onClose();
-      setFormData(initialFormData);
-      setError(null);
-      setValidationErrors({});
-    }
+    if (isSaving) return;
+    onClose();
   };
 
   return (
@@ -386,7 +570,9 @@ export default function ProcedureFormDrawer({
                 <Switch
                   id="requires_consent"
                   checked={formData.requires_consent}
-                  onCheckedChange={(checked) => handleChange('requires_consent', checked)}
+                  onCheckedChange={(checked) =>
+                    handleChange('requires_consent', checked)
+                  }
                   disabled={isViewMode}
                 />
                 <Label htmlFor="requires_consent" className="text-xs font-normal">
@@ -402,7 +588,9 @@ export default function ProcedureFormDrawer({
                   <Textarea
                     id="consent_form_template"
                     value={formData.consent_form_template}
-                    onChange={(e) => handleChange('consent_form_template', e.target.value)}
+                    onChange={(e) =>
+                      handleChange('consent_form_template', e.target.value)
+                    }
                     disabled={isViewMode}
                     placeholder="Enter consent form template or reference"
                     rows={3}
@@ -417,7 +605,9 @@ export default function ProcedureFormDrawer({
                 <Textarea
                   id="pre_procedure_instructions"
                   value={formData.pre_procedure_instructions}
-                  onChange={(e) => handleChange('pre_procedure_instructions', e.target.value)}
+                  onChange={(e) =>
+                    handleChange('pre_procedure_instructions', e.target.value)
+                  }
                   disabled={isViewMode}
                   placeholder="Instructions to be followed before the procedure"
                   rows={3}
@@ -431,7 +621,9 @@ export default function ProcedureFormDrawer({
                 <Textarea
                   id="post_procedure_instructions"
                   value={formData.post_procedure_instructions}
-                  onChange={(e) => handleChange('post_procedure_instructions', e.target.value)}
+                  onChange={(e) =>
+                    handleChange('post_procedure_instructions', e.target.value)
+                  }
                   disabled={isViewMode}
                   placeholder="Instructions to be followed after the procedure"
                   rows={3}
@@ -452,7 +644,9 @@ export default function ProcedureFormDrawer({
                 <Textarea
                   id="complications"
                   value={formData.complications}
-                  onChange={(e) => handleChange('complications', e.target.value)}
+                  onChange={(e) =>
+                    handleChange('complications', e.target.value)
+                  }
                   disabled={isViewMode}
                   placeholder="List potential complications or side effects"
                   rows={3}
@@ -466,9 +660,11 @@ export default function ProcedureFormDrawer({
                 <Textarea
                   id="contraindications"
                   value={formData.contraindications}
-                  onChange={(e) => handleChange('contraindications', e.target.value)}
+                  onChange={(e) =>
+                    handleChange('contraindications', e.target.value)
+                  }
                   disabled={isViewMode}
-                  placeholder="List contraindications or when procedure should not be performed"
+                  placeholder="When procedure should NOT be performed"
                   rows={3}
                 />
               </div>
@@ -484,7 +680,9 @@ export default function ProcedureFormDrawer({
                 <Switch
                   id="is_active"
                   checked={formData.is_active}
-                  onCheckedChange={(checked) => handleChange('is_active', checked)}
+                  onCheckedChange={(checked) =>
+                    handleChange('is_active', checked)
+                  }
                   disabled={isViewMode}
                 />
                 <Label htmlFor="is_active" className="text-xs font-normal">
@@ -493,7 +691,7 @@ export default function ProcedureFormDrawer({
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Actions */}
             {!isViewMode && (
               <div className="flex justify-end gap-3 pt-4 border-t">
                 <Button
@@ -526,7 +724,11 @@ export default function ProcedureFormDrawer({
 
             {isViewMode && (
               <div className="flex justify-end pt-4 border-t">
-                <Button type="button" variant="outline" onClick={handleClose}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClose}
+                >
                   Close
                 </Button>
               </div>
