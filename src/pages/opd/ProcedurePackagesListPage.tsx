@@ -607,10 +607,12 @@ export default function ProcedurePackagesListPage() {
       {/* Package Form Drawer */}
       <PackageFormDrawer
         open={drawerOpen}
-        onClose={handleDrawerClose}
+        onOpenChange={setDrawerOpen}
         packageId={selectedPackageId}
         mode={drawerMode}
         onSuccess={handleDrawerSuccess}
+        onDelete={handleDeletePackage} 
+        onModeChange={setDrawerMode}    
       />
     </div>
   );

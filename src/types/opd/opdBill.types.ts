@@ -1,113 +1,147 @@
 // src/types/opd/opdBill.types.ts
 
-/**
- * OPD Bill Model Type Definitions
- * Matches: opd/models.py - OPDBill Model
- * API Endpoint: /api/opd/opd-bills/
- */
-
-export type OPDType = 'consultation' | 'follow_up' | 'emergency';
-
-export type ChargeType = 'first_visit' | 'revisit' | 'emergency';
-
+// Payment mode type
 export type PaymentMode = 'cash' | 'card' | 'upi' | 'bank' | 'multiple';
 
+// Payment status type
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid';
 
-/**
- * Full OPD Bill object returned from API
- */
-export interface OPDBill {
-  // Primary Fields
-  id: number;
-  bill_number: string;
-  bill_date: string; // DateTimeField - auto_now_add, ISO format
-  
-  // Related Models (IDs)
-  visit: number; // OneToOneField
-  doctor: number;
-  
-  // Related Model Names (read-only, from serializer)
-  visit_number?: string;
-  patient_name?: string;
-  doctor_name?: string;
-  billed_by_name?: string;
-  
-  // Bill Classification
-  opd_type: OPDType;
-  opd_subtype: string; // CharField, default 'NA'
-  charge_type: ChargeType;
-  
-  // Medical Information
-  diagnosis: string; // TextField
-  remarks: string; // TextField
-  
-  // Financial Details
-  total_amount: string; // DecimalField(10, 2)
-  discount_percent: string; // DecimalField(5, 2), default 0.00
-  discount_amount: string; // DecimalField(10, 2), auto-calculated
-  payable_amount: string; // DecimalField(10, 2), auto-calculated
-  
-  // Payment Details
-  payment_mode: PaymentMode;
-  payment_details: Record<string, any>; // JSONField, stores payment breakdown
-  received_amount: string; // DecimalField(10, 2)
-  balance_amount: string; // DecimalField(10, 2), auto-calculated
-  payment_status: PaymentStatus; // auto-calculated
-  
-  // Audit Fields
-  billed_by: number | null;
-  
-  // Timestamps
-  created_at: string; // DateTimeField - auto_now_add, ISO format
-  updated_at: string; // DateTimeField - auto_now, ISO format
+// Bill type
+export type BillType = 'hospital' | 'consultation' | 'procedure';
+
+// OPD Bill Item interface
+export interface OPDBillItem {
+  id?: number;
+  particular: string;
+  particular_name?: string;
+  quantity: number;
+  unit_charge: string;
+  discount_amount: string;
+  total_amount: string;
+  item_order?: number;
+  note?: string;
 }
 
-/**
- * Query parameters for listing/filtering OPD bills
- */
+// Main OPD Bill interface
+export interface OPDBill {
+  id: number;
+  bill_number: string;
+  bill_date: string;
+  patient: number;
+  patient_name?: string;
+  patient_phone?: string;
+  visit?: number;
+  visit_number?: string;
+  doctor: number;
+  doctor_name?: string;
+  bill_type: BillType;
+  category?: string;
+  items: OPDBillItem[];
+  subtotal_amount: string;
+  discount_amount: string;
+  discount_percent: string;
+  tax_amount: string;
+  total_amount: string;
+  received_amount: string;
+  balance_amount: string;
+  payment_status: PaymentStatus;
+  payment_mode: PaymentMode;
+  payment_details?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  created_by?: number;
+  updated_by?: number;
+}
+
+// List parameters for fetching OPD bills
 export interface OPDBillListParams {
   page?: number;
   page_size?: number;
+  search?: string;
+  payment_status?: PaymentStatus;
+  bill_type?: BillType;
+  bill_date?: string;
+  bill_date_from?: string;
+  bill_date_to?: string;
+  patient?: number;
   visit?: number;
   doctor?: number;
-  payment_status?: PaymentStatus;
-  opd_type?: OPDType;
-  bill_date?: string; // YYYY-MM-DD
-  search?: string;
   ordering?: string;
   [key: string]: string | number | boolean | undefined;
 }
 
-/**
- * Data required to create a new OPD bill
- */
+// Create data for new OPD bill
 export interface OPDBillCreateData {
-  visit: number;
+  bill_number?: string;
+  bill_date: string;
+  patient?: number;
+  visit?: number;
   doctor: number;
-  opd_type: OPDType;
-  opd_subtype?: string;
-  charge_type: ChargeType;
-  diagnosis?: string;
-  remarks?: string;
-  total_amount: string;
+  bill_type: BillType;
+  category?: string;
+  items: Array<{
+    particular: string;
+    particular_name?: string;
+    quantity: number;
+    unit_charge: string;
+    discount_amount?: string;
+    total_amount?: string;
+    item_order?: number;
+    note?: string;
+  }>;
+  subtotal_amount?: string;
+  discount_amount?: string;
   discount_percent?: string;
-  payment_mode?: PaymentMode;
-  payment_details?: Record<string, any>;
+  tax_amount?: string;
+  total_amount?: string;
   received_amount?: string;
+  balance_amount?: string;
+  payment_status?: PaymentStatus;
+  payment_mode?: PaymentMode;
+  payment_details?: string;
+  notes?: string;
 }
 
-/**
- * Data for updating an existing OPD bill
- */
-export interface OPDBillUpdateData extends Partial<OPDBillCreateData> {}
+// Update data for existing OPD bill
+export interface OPDBillUpdateData extends Partial<OPDBillCreateData> {
+  // All fields from create are optional for update
+}
 
-/**
- * Data for recording a payment on an existing bill
- * Used with POST /opd-bills/{id}/record_payment/
- */
+// Payment record data
 export interface PaymentRecordData {
   amount: string;
   payment_mode: PaymentMode;
-  payment_details?: Record<string, any>;
+  payment_details?: Record<string, any> | string;
+  notes?: string;
+}
+
+// Print response
+export interface OPDBillPrintResponse {
+  success: boolean;
+  pdf_url: string;
+  message?: string;
+}
+
+// Statistics/Summary types (if needed)
+export interface OPDBillSummary {
+  total_bills: number;
+  total_amount: number;
+  received_amount: number;
+  balance_amount: number;
+  paid_bills: number;
+  unpaid_bills: number;
+  partial_bills: number;
+}
+
+// Filter options type (if needed for UI)
+export interface OPDBillFilters {
+  payment_status?: PaymentStatus[];
+  bill_type?: BillType[];
+  date_range?: {
+    from: string;
+    to: string;
+  };
+  doctor_ids?: number[];
+  patient_ids?: number[];
 }

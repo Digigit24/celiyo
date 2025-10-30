@@ -265,7 +265,7 @@ export default function ProcedureBillsListPage() {
     mutate();
   };
 
-  // Drawer handlers
+ // Drawer handlers - UPDATED
   const handleCreateBill = () => {
     setDrawerMode('create');
     setSelectedBillId(null);
@@ -290,14 +290,13 @@ export default function ProcedureBillsListPage() {
     setDrawerOpen(true);
   }, []);
 
-  const handleDrawerClose = () => {
-    setDrawerOpen(false);
-    setSelectedBillId(null);
-  };
-
   const handleDrawerSuccess = () => {
     mutate(); // Refresh the list after successful operation
   };
+
+  const handleDeleteBill = useCallback((billId: number) => {
+    mutate(); // Refresh the list after delete
+  }, [mutate]);
 
   // derived metrics
   const totalRevenue = useMemo(() => {
@@ -680,10 +679,12 @@ export default function ProcedureBillsListPage() {
       {/* Procedure Bill Drawer */}
       <ProcedureBillDrawer
         open={drawerOpen}
-        onClose={handleDrawerClose}
+        onOpenChange={setDrawerOpen}
         billId={selectedBillId}
         mode={drawerMode}
         onSuccess={handleDrawerSuccess}
+        onDelete={handleDeleteBill}
+        onModeChange={setDrawerMode}
       />
     </div>
   );

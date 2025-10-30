@@ -6,11 +6,9 @@ import type {
   ProcedurePackageCreateData,
   ProcedurePackageUpdateData,
   ProcedurePackageListParams,
- 
 } from '@/types/opd/procedurePackage.types';
 
 import type {
- 
   PaginatedResponse,
   ApiResponse,
 } from '@/types/opd/common.types';
@@ -30,18 +28,19 @@ export const getProcedurePackageById = async (
   id: number
 ): Promise<ProcedurePackage> => {
   const url = buildOPDUrl(OPD_API_CONFIG.PROCEDURE_PACKAGES.DETAIL, { id });
-  const response = await apiClient.get<ApiResponse<ProcedurePackage>>(url);
-  return response.data.data;
+  const response = await apiClient.get<ProcedurePackage>(url);
+  // API returns data directly, not wrapped in { data: ... }
+  return response.data;
 };
 
 export const createProcedurePackage = async (
   data: ProcedurePackageCreateData
 ): Promise<ProcedurePackage> => {
-  const response = await apiClient.post<ApiResponse<ProcedurePackage>>(
+  const response = await apiClient.post<ProcedurePackage>(
     OPD_API_CONFIG.PROCEDURE_PACKAGES.CREATE,
     data
   );
-  return response.data.data;
+  return response.data;
 };
 
 export const updateProcedurePackage = async (
@@ -49,11 +48,11 @@ export const updateProcedurePackage = async (
   data: ProcedurePackageUpdateData
 ): Promise<ProcedurePackage> => {
   const url = buildOPDUrl(OPD_API_CONFIG.PROCEDURE_PACKAGES.UPDATE, { id });
-  const response = await apiClient.patch<ApiResponse<ProcedurePackage>>(
+  const response = await apiClient.patch<ProcedurePackage>(
     url,
     data
   );
-  return response.data.data;
+  return response.data;
 };
 
 export const deleteProcedurePackage = async (id: number): Promise<void> => {
