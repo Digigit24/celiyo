@@ -174,26 +174,40 @@ export const API_CONFIG = {
 
   // ==================== PHARMACY ====================
   PHARMACY: {
-    MEDICINES_LIST: '/pharmacy/medicines/',
-    MEDICINE_DETAIL: '/pharmacy/medicines/:id/',
-    MEDICINE_CREATE: '/pharmacy/medicines/',
-    MEDICINE_UPDATE: '/pharmacy/medicines/:id/',
-    MEDICINE_DELETE: '/pharmacy/medicines/:id/',
-    MEDICINE_CATEGORIES_LIST: '/pharmacy/medicine-categories/',
-    MEDICINE_CATEGORY_DETAIL: '/pharmacy/medicine-categories/:id/',
-    STOCK_LIST: '/pharmacy/medicine-stock/',
-    STOCK_DETAIL: '/pharmacy/medicine-stock/:id/',
-    ADJUST_STOCK: '/pharmacy/medicine-stock/:id/adjust_stock/',
-    LOW_STOCK: '/pharmacy/medicine-stock/low_stock/',
-    SALES_LIST: '/pharmacy/medicine-sales/',
-    SALE_DETAIL: '/pharmacy/medicine-sales/:id/',
-    SALE_CREATE: '/pharmacy/medicine-sales/',
-    SALE_UPDATE: '/pharmacy/medicine-sales/:id/',
-    SALE_DELETE: '/pharmacy/medicine-sales/:id/',
-    RECORD_PAYMENT: '/pharmacy/medicine-sales/:id/record_payment/',
-    PRINT_BILL: '/pharmacy/medicine-sales/:id/print/',
-  },
-
+  // Product Categories
+  CATEGORIES_LIST: '/pharmacy/categories/',
+  CATEGORY_DETAIL: '/pharmacy/categories/:id/',
+  CATEGORY_CREATE: '/pharmacy/categories/',
+  CATEGORY_UPDATE: '/pharmacy/categories/:id/',
+  CATEGORY_DELETE: '/pharmacy/categories/:id/',
+  
+  // Products
+  PRODUCTS_LIST: '/pharmacy/products/',
+  PRODUCT_DETAIL: '/pharmacy/products/:id/',
+  PRODUCT_CREATE: '/pharmacy/products/',
+  PRODUCT_UPDATE: '/pharmacy/products/:id/',
+  PRODUCT_DELETE: '/pharmacy/products/:id/',
+  
+  // Product Stats & Filters
+  LOW_STOCK: '/pharmacy/products/low_stock/',
+  NEAR_EXPIRY: '/pharmacy/products/near_expiry/',
+  STATISTICS: '/pharmacy/products/statistics/',
+  
+  // Cart
+  CART_LIST: '/pharmacy/cart/',
+  CART_CREATE: '/pharmacy/cart/',
+  CART_DETAIL: '/pharmacy/cart/:id/',
+  CART_UPDATE: '/pharmacy/cart/:id/',
+  CART_DELETE: '/pharmacy/cart/:id/',
+  ADD_TO_CART: '/pharmacy/cart/add_item/',
+  
+  // Orders
+  ORDERS_LIST: '/pharmacy/orders/',
+  ORDER_DETAIL: '/pharmacy/orders/:id/',
+  ORDER_CREATE: '/pharmacy/orders/',
+  ORDER_UPDATE: '/pharmacy/orders/:id/',
+  ORDER_DELETE: '/pharmacy/orders/:id/',
+},
   // ==================== PAYMENTS ====================
   PAYMENTS: {
     TRANSACTIONS_LIST: '/payments/transactions/',

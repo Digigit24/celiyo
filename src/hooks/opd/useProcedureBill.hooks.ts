@@ -22,8 +22,9 @@ import type {
   ProcedureBillCreateData,
   ProcedureBillUpdateData,
   PaymentRecordData,
-  PaginatedResponse,
-} from '@/types/opd';
+  
+} from '@/types/opd/procedureBill.types';
+import type { PaginatedResponse } from '@/types/opd/common.types';
 
 // ==================== QUERY HOOKS ====================
 

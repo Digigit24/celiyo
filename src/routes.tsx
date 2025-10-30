@@ -1,6 +1,7 @@
 // src/routes.tsx
 import { RouteObject } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
+import PaymentsListPage from './pages/payments/PaymentsListPage';
 
 // Lazy load components for better code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -14,6 +15,16 @@ const DoctorsListPage = lazy(() => import('./pages/masters/DoctorsListPage'));
 const SpecialtiesListPage = lazy(() => import('./pages/masters/SpecialtyListPage'));
 const PatientsListPage = lazy(() => import('./pages/masters/Patientslistpage'));
 const AppointmentsListPage = lazy(() => import('./pages/masters/AppointmentsListPage'));
+
+// Services
+const ServicesListPage = lazy(() => import('./pages/services/ServicesListPage'));
+const ServiceCategoriesListPage = lazy(() => import('./pages/services/ServiceCategoriesListPage'));
+const DiagnosticTestsListPage = lazy(() => import('./pages/services/DiagnosticTestsListPage'));
+const NursingPackagesListPage = lazy(() => import('./pages/services/NursingPackagesListPage'));
+const HomeHealthcareListPage = lazy(() => import('./pages/services/HomeHealthcareListPage'));
+
+// Pharmacy
+const PharmacyMainPage = lazy(() => import('./pages/pharmacy/PharmacyMainPage'));
 
 // OPD
 const OpdVisitsListPage = lazy(() => import('./pages/opd/OpdVisitsListPage'));
@@ -222,6 +233,78 @@ export const protectedRoutes: AppRoute[] = [
       },
     ],
   },
+  {
+    path: '/services',
+    title: 'Services',
+    icon: 'ClipboardList',
+    children: [
+      {
+        path: '/services',
+        element: (
+          <LazyWrapper>
+            <ServicesListPage />
+          </LazyWrapper>
+        ),
+        title: 'All Services (Test)',
+      },
+      {
+        path: '/services/categories',
+        element: (
+          <LazyWrapper>
+            <ServiceCategoriesListPage />
+          </LazyWrapper>
+        ),
+        title: 'Service Categories',
+      },
+      {
+        path: '/services/diagnostic-tests',
+        element: (
+          <LazyWrapper>
+            <DiagnosticTestsListPage />
+          </LazyWrapper>
+        ),
+        title: 'Diagnostic Tests',
+      },
+      {
+        path: '/services/nursing-packages',
+        element: (
+          <LazyWrapper>
+            <NursingPackagesListPage />
+          </LazyWrapper>
+        ),
+        title: 'Nursing Packages',
+      },
+      {
+        path: '/services/home-healthcare',
+        element: (
+          <LazyWrapper>
+            <HomeHealthcareListPage />
+          </LazyWrapper>
+        ),
+        title: 'Home Healthcare',
+      },
+    ],
+  },
+  {
+  path: '/pharmacy',
+  element: (
+    <LazyWrapper>
+      <PharmacyMainPage />
+    </LazyWrapper>
+  ),
+  title: 'Pharmacy',
+  icon: 'Pill',
+},
+{
+  path: '/payments',
+  element: (
+    <LazyWrapper>
+      <PaymentsListPage />
+    </LazyWrapper>
+  ),
+  title: 'Payments',
+  icon: 'CreditCard',
+},
 ];
 
 // 404 route

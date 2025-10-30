@@ -20,6 +20,7 @@ import {
   Package,
   Receipt,
   Microscope,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -102,6 +103,55 @@ const menuItems: MenuItem[] = [
       },
     ],
   },
+
+  {
+    id: "services",
+    label: "services",
+    icon: Package,
+    children: [
+
+      // {
+      //   id: "service-categories",
+      //   label: "Service Categories",
+      //   icon: ClipboardList,
+      //   path: "/services/categories",
+      // },
+      { 
+        id: "diagnostic-tests",
+        label: "Diagnostic Tests",
+        icon: Microscope,
+        path: "/services/diagnostic-tests",
+      },
+      {
+        id: "nursing-packages",
+        label: "Nursing Packages",
+        icon: Receipt,
+        path: "/services/nursing-packages",
+      },
+      {
+        id: "home-healthcare",
+        label: "Home Healthcare",
+        icon: Stethoscope,
+        path: "/services/home-healthcare",
+      },
+    ],
+  },
+
+  {
+    id: "pharmacy",
+    label: "Pharmacy",
+    icon: Activity,
+    path: "/pharmacy",
+  },
+
+  {
+  id: 'payments',
+  label: 'Payments',
+  icon: CreditCard,
+  path: '/payments',
+},
+
+
   {
     id: "masters",
     label: "Masters",
@@ -133,6 +183,10 @@ const menuItems: MenuItem[] = [
       },
     ],
   },
+
+
+
+  
 ];
 
 interface UniversalSidebarProps {
