@@ -13,6 +13,8 @@ import {
   ArrowLeft,
   Calendar as CalendarIcon,
   CalendarDays,
+  CalendarRange,
+  Clock,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -24,7 +26,6 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
-import 'react-day-picker/dist/style.css';
 import {
   format,
   startOfMonth,
@@ -33,10 +34,14 @@ import {
   isSameMonth,
   addMonths,
   startOfWeek,
+  endOfWeek,
   addDays,
+  startOfDay,
+  endOfDay,
+  isWithinInterval,
 } from 'date-fns';
 
-// --- Small helpers -----------------------------------------------------------
+// ───────────────────────── helpers ─────────────────────────
 function getApptDate(a: AppointmentList): Date {
   const anyA = a as any;
   const raw =
@@ -70,9 +75,7 @@ function timeLabelFor(a: AppointmentList): string | undefined {
   return `${hh}:${mm}`;
 }
 
-// Light theme color tokens for chips
 type ColorTokens = { bg: string; text: string; ring: string };
-
 function colorFor(a: AppointmentList): ColorTokens {
   const anyA = a as any;
   const s = (anyA.status || '').toString().toLowerCase();
@@ -93,7 +96,31 @@ function colorFor(a: AppointmentList): ColorTokens {
   return { bg: 'bg-blue-100', text: 'text-blue-800', ring: 'ring-blue-200' };
 }
 
-// --- Calendar Grid (custom day content) --------------------------------------
+// A thin wrapper to make big grids responsive via horizontal scroll on mobile
+function GridScroller({
+  minWidth,
+  children,
+}: {
+  minWidth: number; // e.g., 900 for month, 720 for week
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative -mx-4 md:mx-0">
+      <div className="overflow-x-auto scrollbar-thin px-4 md:px-0">
+        <div
+          className="mx-auto"
+          style={{
+            minWidth, // force horizontal scroll on narrow screens
+          }}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ───────────────────────── Month grid ─────────────────────────
 function MonthGrid({
   month,
   appointments,
@@ -105,7 +132,6 @@ function MonthGrid({
   onOpenView: (a: AppointmentList) => void;
   onOpenCreate: (d: Date) => void;
 }) {
-  // Group appointments by date
   const byDate = useMemo(() => {
     const map = new Map<string, CalendarCellAppt[]>();
     for (const a of appointments) {
@@ -124,7 +150,6 @@ function MonthGrid({
       });
       map.set(key, list);
     }
-    // Sort by time
     for (const [k, list] of map) {
       list.sort((x, y) => getApptDate(x.full).getTime() - getApptDate(y.full).getTime());
       map.set(k, list);
@@ -132,13 +157,12 @@ function MonthGrid({
     return map;
   }, [appointments]);
 
-  // Build weeks for current month
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
   const gridStart = startOfWeek(monthStart, { weekStartsOn: 0 });
   const weeks: Date[][] = [];
   let cursor = gridStart;
-  while (cursor <= monthEnd || weeks.length < 6) {
+  while (cursor <= endOfMonth(month) || weeks.length < 6) {
     const row: Date[] = [];
     for (let i = 0; i < 7; i++) {
       row.push(cursor);
@@ -149,91 +173,291 @@ function MonthGrid({
   }
 
   return (
-    <div className="grid grid-cols-7 gap-px rounded-md border bg-border">
-      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((wd) => (
-        <div key={wd} className="bg-muted/50 px-2 py-2 text-xs font-medium text-muted-foreground">
-          {wd}
-        </div>
-      ))}
-
-      {weeks.flat().map((day) => {
-        const key = dateKey(day);
-        const items = byDate.get(key) ?? [];
-        const faded = !isSameMonth(day, month);
-
-        return (
+    <GridScroller minWidth={980}>
+      <div className="grid grid-cols-7 gap-px rounded-md border bg-border">
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((wd) => (
           <div
-            key={key}
-            onClick={() => onOpenCreate(day)} // << open create with this date
-            className={cn(
-              'min-h-[120px] bg-background p-2 align-top cursor-pointer',
-              faded && 'bg-muted/20 text-muted-foreground'
-            )}
+            key={wd}
+            className="bg-muted/50 px-2 py-2 text-xs md:text-sm font-medium text-muted-foreground"
           >
-            <div className="mb-1 flex items-center justify-between">
-              <span
-                className={cn(
-                  'text-xs font-medium',
-                  isSameDay(day, new Date()) &&
-                    'inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground'
-                )}
-                title={format(day, 'PPPP')}
-              >
-                {format(day, 'd')}
-              </span>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-[11px]"
-                onClick={(e) => {
-                  e.stopPropagation(); // prevent day click
-                  onOpenCreate(day);
-                }}
-              >
-                <Plus className="mr-1 h-3 w-3" /> Add
-              </Button>
-            </div>
-
-            <div className="space-y-1">
-              {items.length === 0 ? (
-                <div className="text-[11px] text-muted-foreground/70">No appointments</div>
-              ) : (
-                items.slice(0, 4).map((it) => {
-                  const c = colorFor(it.full);
-                  return (
-                    <button
-                      key={it.id}
-                      onClick={(e) => {
-                        e.stopPropagation(); // prevent day click
-                        onOpenView(it.full);
-                      }}
-                      className={cn(
-                        'w-full truncate rounded-md px-2 py-1 text-left text-[11px] font-medium ring-1 hover:brightness-95',
-                        c.bg,
-                        c.text,
-                        c.ring
-                      )}
-                      title={`${it.timeLabel ?? ''} ${it.title}`}
-                    >
-                      <span className="mr-1">{it.timeLabel ?? '--:--'}</span>
-                      <span className="truncate">{it.title}</span>
-                    </button>
-                  );
-                })
-              )}
-              {items.length > 4 && (
-                <div className="text-[11px] text-muted-foreground">+{items.length - 4} more</div>
-              )}
-            </div>
+            {wd}
           </div>
-        );
-      })}
+        ))}
+
+        {weeks.flat().map((day) => {
+          const key = dateKey(day);
+          const items = byDate.get(key) ?? [];
+          const faded = !isSameMonth(day, month);
+
+          return (
+            <div
+              key={key}
+              onClick={() => onOpenCreate(day)}
+              className={cn(
+                'min-h-[110px] md:min-h-[140px] lg:min-h-[160px] bg-background p-2 align-top cursor-pointer',
+                faded && 'bg-muted/20 text-muted-foreground'
+              )}
+            >
+              <div className="mb-1 flex items-center justify-between">
+                <span
+                  className={cn(
+                    'text-[11px] md:text-xs font-medium',
+                    isSameDay(day, new Date()) &&
+                      'inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground'
+                  )}
+                  title={format(day, 'PPPP')}
+                >
+                  {format(day, 'd')}
+                </span>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-[11px]"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenCreate(day);
+                  }}
+                >
+                  <Plus className="mr-1 h-3 w-3" /> Add
+                </Button>
+              </div>
+
+              <div className="space-y-1">
+                {items.length === 0 ? (
+                  <div className="text-[11px] text-muted-foreground/70">No appointments</div>
+                ) : (
+                  items.slice(0, 4).map((it) => {
+                    const c = colorFor(it.full);
+                    return (
+                      <button
+                        key={it.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenView(it.full);
+                        }}
+                        className={cn(
+                          'w-full truncate rounded-md px-2 py-1 text-left text-[11px] font-medium ring-1 hover:brightness-95',
+                          c.bg,
+                          c.text,
+                          c.ring
+                        )}
+                        title={`${it.timeLabel ?? ''} ${it.title}`}
+                      >
+                        <span className="mr-1">{it.timeLabel ?? '--:--'}</span>
+                        <span className="truncate">{it.title}</span>
+                      </button>
+                    );
+                  })
+                )}
+                {items.length > 4 && (
+                  <div className="text-[11px] text-muted-foreground">+{items.length - 4} more</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </GridScroller>
+  );
+}
+
+// ───────────────────────── Week grid ─────────────────────────
+function WeekGrid({
+  weekStart,
+  appointments,
+  onOpenView,
+  onOpenCreate,
+}: {
+  weekStart: Date;
+  appointments: AppointmentList[];
+  onOpenView: (a: AppointmentList) => void;
+  onOpenCreate: (d: Date) => void;
+}) {
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  const byDay = useMemo(() => {
+    const map = new Map<string, CalendarCellAppt[]>();
+    for (const a of appointments) {
+      const d = getApptDate(a);
+      if (
+        isWithinInterval(d, { start: startOfDay(weekStart), end: endOfDay(addDays(weekStart, 6)) })
+      ) {
+        const key = dateKey(d);
+        const list = map.get(key) ?? [];
+        list.push({
+          id: (a as any).id as number,
+          title:
+            ((a as any).patient_name as string) ||
+            ((a as any).title as string) ||
+            ((a as any).patient?.name as string) ||
+            'Appointment',
+          timeLabel: timeLabelFor(a),
+          full: a,
+        });
+        map.set(key, list);
+      }
+    }
+    for (const [k, list] of map) {
+      list.sort((x, y) => getApptDate(x.full).getTime() - getApptDate(y.full).getTime());
+      map.set(k, list);
+    }
+    return map;
+  }, [appointments, weekStart]);
+
+  return (
+    <GridScroller minWidth={860}>
+      <div className="grid grid-cols-7 gap-px rounded-md border bg-border">
+        {days.map((d) => {
+          const key = dateKey(d);
+          const items = byDay.get(key) ?? [];
+          return (
+            <div
+              key={key}
+              onClick={() => onOpenCreate(d)}
+              className="min-h-[220px] md:min-h-[260px] bg-background p-3 cursor-pointer"
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      'text-[11px] md:text-xs font-medium',
+                      isSameDay(d, new Date()) &&
+                        'inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground'
+                    )}
+                    title={format(d, 'PPPP')}
+                  >
+                    {format(d, 'EEE d')}
+                  </span>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-[11px]"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenCreate(d);
+                  }}
+                >
+                  <Plus className="mr-1 h-3 w-3" /> Add
+                </Button>
+              </div>
+
+              <div className="space-y-1">
+                {items.length === 0 ? (
+                  <div className="text-[11px] text-muted-foreground/70">No appointments</div>
+                ) : (
+                  items.map((it) => {
+                    const c = colorFor(it.full);
+                    return (
+                      <button
+                        key={it.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenView(it.full);
+                        }}
+                        className={cn(
+                          'w-full truncate rounded-md px-2 py-1 text-left text-[12px] font-medium ring-1 hover:brightness-95',
+                          c.bg,
+                          c.text,
+                          c.ring
+                        )}
+                        title={`${it.timeLabel ?? ''} ${it.title}`}
+                      >
+                        <span className="mr-1">{it.timeLabel ?? '--:--'}</span>
+                        <span className="truncate">{it.title}</span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </GridScroller>
+  );
+}
+
+// ───────────────────────── Day view ─────────────────────────
+function DayView({
+  day,
+  appointments,
+  onOpenView,
+  onOpenCreate,
+}: {
+  day: Date;
+  appointments: AppointmentList[];
+  onOpenView: (a: AppointmentList) => void;
+  onOpenCreate: (d: Date) => void;
+}) {
+  const items = useMemo(() => {
+    const list = appointments.filter((a) =>
+      isWithinInterval(getApptDate(a), { start: startOfDay(day), end: endOfDay(day) })
+    );
+    return list.sort((x, y) => getApptDate(x).getTime() - getApptDate(y).getTime());
+  }, [appointments, day]);
+
+  return (
+    <div className="rounded-md border">
+      <div className="flex items-center justify-between border-b px-3 py-2">
+        <div className="text-sm font-medium">{format(day, 'PPPP')}</div>
+        <Button variant="outline" size="sm" onClick={() => onOpenCreate(day)}>
+          <Plus className="mr-2 h-3 w-3" />
+          Add appointment
+        </Button>
+      </div>
+
+      <div className="p-3 space-y-2">
+        {items.length === 0 && (
+          <div
+            className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground cursor-pointer"
+            onClick={() => onOpenCreate(day)}
+          >
+            No appointments today. Tap to create.
+          </div>
+        )}
+
+        {items.map((a) => {
+          const c = colorFor(a);
+          const t = timeLabelFor(a);
+          const title =
+            (a as any).patient_name || (a as any).title || (a as any).patient?.name || 'Appointment';
+          return (
+            <div
+              key={(a as any).id}
+              className={cn(
+                'flex items-center justify-between rounded-md px-3 py-2 ring-1',
+                c.bg,
+                c.text,
+                c.ring
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className="inline-flex items-center gap-1 text-sm">
+                  <Clock className="h-3.5 w-3.5 opacity-70" />
+                  <span className="font-semibold">{t ?? '--:--'}</span>
+                </div>
+                <div className="text-sm font-medium">{title as string}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={() => onOpenView(a)}>
+                  View
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => onOpenCreate(getApptDate(a))}>
+                  Copy
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-// --- Main Page ----------------------------------------------------------------
+// ───────────────────────── Main page ─────────────────────────
 export default function AppointmentsListPage() {
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
@@ -244,18 +468,17 @@ export default function AppointmentsListPage() {
   });
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
-  // Appointment Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null);
   const [drawerMode, setDrawerMode] = useState<'create' | 'edit' | 'view'>('view');
-
-  // Prefill date for create mode
   const [prefillDate, setPrefillDate] = useState<Date | null>(null);
 
   const { appointments, count, loading: isLoading, error, fetchAppointments } = useAppointments();
 
-  // calendar month state
   const [calendarMonth, setCalendarMonth] = useState<Date>(startOfMonth(new Date()));
+  const [weekRef, setWeekRef] = useState<Date>(new Date());
+  const weekStart = startOfWeek(weekRef, { weekStartsOn: 0 });
+  const [dayRef, setDayRef] = useState<Date>(startOfDay(new Date()));
 
   useEffect(() => {
     fetchAppointments(filters);
@@ -283,14 +506,12 @@ export default function AppointmentsListPage() {
     setIsFiltersOpen(false);
   };
 
-  // Drawer actions
   const openCreateWithDate = useCallback((d?: Date) => {
     setSelectedAppointmentId(null);
     setDrawerMode('create');
-    if (d) setPrefillDate(d);
+    if (d) setPrefillDate(d); // <-- prefill sidebar date
     setDrawerOpen(true);
   }, []);
-
   const handleCreateAppointment = () => openCreateWithDate();
 
   const handleEditAppointment = (appointment: AppointmentList) => {
@@ -309,10 +530,17 @@ export default function AppointmentsListPage() {
     fetchAppointments(filters);
   };
 
-  // Calendar controls
   const goPrevMonth = () => setCalendarMonth((m) => addMonths(m, -1));
   const goNextMonth = () => setCalendarMonth((m) => addMonths(m, 1));
-  const goToday = () => setCalendarMonth(startOfMonth(new Date()));
+  const goTodayMonth = () => setCalendarMonth(startOfMonth(new Date()));
+
+  const goPrevWeek = () => setWeekRef((d) => addDays(d, -7));
+  const goNextWeek = () => setWeekRef((d) => addDays(d, 7));
+  const goThisWeek = () => setWeekRef(new Date());
+
+  const goPrevDay = () => setDayRef((d) => addDays(d, -1));
+  const goNextDay = () => setDayRef((d) => addDays(d, 1));
+  const goTodayDay = () => setDayRef(startOfDay(new Date()));
 
   if (isLoading && appointments.length === 0) {
     return (
@@ -341,7 +569,7 @@ export default function AppointmentsListPage() {
 
   return (
     <div className="flex flex-col h-screen bg-background">
-      {/* Header Section */}
+      {/* Header */}
       <div className="border-b bg-background sticky top-0 z-10">
         <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4">
           <div className="flex items-center gap-3">
@@ -356,13 +584,13 @@ export default function AppointmentsListPage() {
             </div>
           </div>
 
-        <Button onClick={handleCreateAppointment} size={isMobile ? 'sm' : 'default'}>
+          <Button onClick={handleCreateAppointment} size={isMobile ? 'sm' : 'default'}>
             <Plus className="h-4 w-4 mr-2" />
             {!isMobile && 'New Appointment'}
           </Button>
         </div>
 
-        {/* Search & Filter Bar */}
+        {/* Search & Filters */}
         <div className="px-4 pb-3 md:px-6 md:pb-4">
           <div className="flex gap-2">
             <div className="relative flex-1">
@@ -406,7 +634,6 @@ export default function AppointmentsListPage() {
             </Sheet>
           </div>
 
-          {/* Active Filter Tags */}
           <div className="flex flex-wrap gap-2 mt-3">
             {filters.search && (
               <Badge variant="secondary" className="bg-primary/10 text-primary">
@@ -416,19 +643,25 @@ export default function AppointmentsListPage() {
           </div>
         </div>
 
-        {/* View Switch Tabs */}
+        {/* Views */}
         <div className="px-4 md:px-6 pb-2">
           <Tabs defaultValue="list" className="w-full">
-            <TabsList className="grid w-full max-w-sm grid-cols-2">
+            <TabsList className="grid w-full max-w-lg grid-cols-4">
               <TabsTrigger value="list" className="flex items-center gap-2">
                 <CalendarDays className="h-4 w-4" /> List
               </TabsTrigger>
-              <TabsTrigger value="calendar" className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4" /> Calendar
+              <TabsTrigger value="month" className="flex items-center gap-2">
+                <CalendarIcon className="h-4 w-4" /> Month
+              </TabsTrigger>
+              <TabsTrigger value="week" className="flex items-center gap-2">
+                <CalendarRange className="h-4 w-4" /> Week
+              </TabsTrigger>
+              <TabsTrigger value="day" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" /> Day
               </TabsTrigger>
             </TabsList>
 
-            {/* LIST VIEW */}
+            {/* LIST */}
             <TabsContent value="list" className="mt-4">
               <div className="flex-1 overflow-auto">
                 <AppointmentTable
@@ -441,9 +674,8 @@ export default function AppointmentsListPage() {
               </div>
             </TabsContent>
 
-            {/* CALENDAR VIEW */}
-            <TabsContent value="calendar" className="mt-4">
-              {/* Month header controls */}
+            {/* MONTH */}
+            <TabsContent value="month" className="mt-4">
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="icon" onClick={goPrevMonth}>
@@ -456,24 +688,93 @@ export default function AppointmentsListPage() {
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-                <Button variant="ghost" onClick={goToday}>
+                <Button variant="ghost" onClick={goTodayMonth}>
                   Today
                 </Button>
               </div>
 
-              {/* Calendar grid */}
               <MonthGrid
                 month={calendarMonth}
                 appointments={appointments}
                 onOpenView={handleViewAppointment}
-                onOpenCreate={(d) => openCreateWithDate(d)}
+                onOpenCreate={(d) => {
+                  setPrefillDate(d);
+                  setWeekRef(d);
+                  setDayRef(d);
+                  openCreateWithDate(d);
+                }}
+              />
+            </TabsContent>
+
+            {/* WEEK */}
+            <TabsContent value="week" className="mt-4">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="icon" onClick={goPrevWeek}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="min-w-[220px] text-center text-sm font-medium">
+                    {format(weekStart, 'MMM d')} –{' '}
+                    {format(endOfWeek(weekStart, { weekStartsOn: 0 }), 'MMM d, yyyy')}
+                  </div>
+                  <Button variant="outline" size="icon" onClick={goNextWeek}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Button variant="ghost" onClick={goThisWeek}>
+                  This week
+                </Button>
+              </div>
+
+              <WeekGrid
+                weekStart={weekStart}
+                appointments={appointments}
+                onOpenView={handleViewAppointment}
+                onOpenCreate={(d) => {
+                  setPrefillDate(d);
+                  setWeekRef(d);
+                  setDayRef(d);
+                  openCreateWithDate(d);
+                }}
+              />
+            </TabsContent>
+
+            {/* DAY */}
+            <TabsContent value="day" className="mt-4">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="icon" onClick={goPrevDay}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="min-w-[180px] text-center text-sm font-medium">
+                    {format(dayRef, 'EEEE, MMM d, yyyy')}
+                  </div>
+                  <Button variant="outline" size="icon" onClick={goNextDay}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Button variant="ghost" onClick={goTodayDay}>
+                  Today
+                </Button>
+              </div>
+
+              <DayView
+                day={dayRef}
+                appointments={appointments}
+                onOpenView={handleViewAppointment}
+                onOpenCreate={(d) => {
+                  setPrefillDate(d);
+                  setWeekRef(d);
+                  setDayRef(d);
+                  openCreateWithDate(d);
+                }}
               />
             </TabsContent>
           </Tabs>
         </div>
       </div>
 
-      {/* Appointment Drawer */}
+      {/* Drawer */}
       <AppointmentDrawer
         open={drawerOpen}
         onOpenChange={(open) => {
@@ -483,6 +784,7 @@ export default function AppointmentsListPage() {
         appointmentId={selectedAppointmentId}
         mode={drawerMode}
         onSuccess={handleDrawerSuccess}
+        // @ts-ignore: supported by your drawer form to prefill the date input
         prefillDate={prefillDate ?? undefined}
       />
     </div>
