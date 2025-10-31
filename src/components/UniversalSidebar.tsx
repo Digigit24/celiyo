@@ -238,14 +238,14 @@ export function UniversalSidebar({
         {!collapsed && (
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-lg flex items-center justify-center">
-              <img src="https://gorehospital.com/assets/images/logo/logo.jpeg" alt="" />
+              <img src="https://pulsehospitalpcmc.com/assets/logo-DRaM1pzk.png" alt="" />
             </div>
             <span className="font-bold text-lg">HMS</span>
           </div>
         )}
         {collapsed && (
           <div className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto">
-            <img src="https://gorehospital.com/assets/images/logo/logo.jpeg" alt="" />
+            <img src="https://pulsehospitalpcmc.com/assets/logo-DRaM1pzk.png" alt="" />
           </div>
         )}
 
