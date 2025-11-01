@@ -10,7 +10,7 @@ import { useIsMobile } from '@/hooks/use-is-mobile';
 import SpecialtyFiltersDrawer from '@/components/SpecialtyFiltersDrawer';
 import SpecialtiesTable from '@/components/SpecialtiesTable';
 import SpecialtyFormDrawer from '@/components/SpecialtyFormDrawer';
-
+ 
 export default function SpecialtiesListPage() {
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');

@@ -1,5 +1,5 @@
 // src/components/SpecialtyFormDrawer.tsx
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -9,8 +9,26 @@ import type { Specialty } from '@/types/doctor.types';
 
 import SpecialtyBasicInfo from './specialty-drawer/SpecialtyBasicInfo';
 import SpecialtyDoctorsTab from './specialty-drawer/SpecialtyDoctorsTab';
-
 import { SideDrawer, type DrawerActionButton, type DrawerHeaderAction } from '@/components/SideDrawer';
+
+// 🔽 Import both CREATE and UPDATE hooks
+import { useCreateSpecialty, useUpdateSpecialty } from '@/hooks/useSpecialties';
+
+// ⛳️ Minimal contract your form should expose via ref (non-breaking for UI)
+// Implement this in SpecialtyBasicInfo with `forwardRef`:
+// use react-hook-form.getValues() under the hood and return the payload.
+export type SpecialtyCreatePayload = {
+  name: string;
+  code: string;
+  description?: string | null;
+  department?: string | null;
+  is_active: boolean;
+};
+
+export interface SpecialtyBasicInfoHandle {
+  /** Collects current form values with validation (async) for the drawer to submit */
+  getFormValues: () => Promise<SpecialtyCreatePayload | null>;
+}
 
 interface SpecialtyFormDrawerProps {
   open: boolean;
@@ -37,12 +55,21 @@ export default function SpecialtyFormDrawer({
   const [isSaving, setIsSaving] = useState(false);
   const [currentMode, setCurrentMode] = useState(mode);
 
+  // ✅ CREATE hook
+  const { trigger: createSpec, isMutating: creating } = useCreateSpecialty();
+
+  // ✅ UPDATE hook - conditionally initialize based on specialtyId
+  const { trigger: updateSpec, isMutating: updating } = useUpdateSpecialty(specialtyId || 0);
+
+  // form ref to collect values (UI stays the same)
+  const formRef = useRef<SpecialtyBasicInfoHandle | null>(null);
+
   // Sync internal mode with prop
   useEffect(() => {
     setCurrentMode(mode);
   }, [mode]);
 
-  // Fetch specialty data when drawer opens
+  // Fetch specialty data when drawer opens (view/edit modes)
   useEffect(() => {
     if (open && specialtyId && currentMode !== 'create') {
       fetchSpecialtyData();
@@ -50,6 +77,7 @@ export default function SpecialtyFormDrawer({
       setSpecialty(null);
       setActiveTab('basic');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, specialtyId, currentMode]);
 
   const fetchSpecialtyData = async () => {
@@ -59,7 +87,7 @@ export default function SpecialtyFormDrawer({
     try {
       const response = await getSpecialties();
       const foundSpecialty = response.find((s) => s.id === specialtyId);
-      
+
       if (foundSpecialty) {
         setSpecialty(foundSpecialty);
       } else {
@@ -79,6 +107,7 @@ export default function SpecialtyFormDrawer({
       fetchSpecialtyData();
     }
     onSuccess?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentMode, onSuccess]);
 
   const handleClose = useCallback(() => {
@@ -99,8 +128,12 @@ export default function SpecialtyFormDrawer({
 
   const handleDelete = useCallback(async () => {
     if (!specialtyId) return;
-    
-    if (window.confirm('Are you sure you want to delete this specialty? This action cannot be undone.')) {
+
+    if (
+      window.confirm(
+        'Are you sure you want to delete this specialty? This action cannot be undone.'
+      )
+    ) {
       try {
         // await deleteSpecialty(specialtyId);
         toast.success('Specialty deleted successfully');
@@ -115,44 +148,65 @@ export default function SpecialtyFormDrawer({
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
-      // Trigger the save from SpecialtyBasicInfo component
-      // The form component should expose a save method or handle via ref
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      toast.success(
-        currentMode === 'create' 
-          ? 'Specialty created successfully' 
-          : 'Specialty updated successfully'
-      );
-      
-      handleSuccess();
-      
-      if (currentMode === 'edit') {
-        handleSwitchToView();
-      } else if (currentMode === 'create') {
+      if (currentMode === 'create') {
+        // ✅ CREATE FLOW
+        const values = await formRef.current?.getFormValues();
+
+        if (!values) {
+          toast.error('Please fill in all required fields correctly');
+          return;
+        }
+
+        console.log('Creating specialty with values:', values);
+
+        await createSpec(values);
+
+        toast.success('Specialty created successfully');
+        handleSuccess();
         handleClose();
+      } else if (currentMode === 'edit') {
+        // ✅ EDIT FLOW - Now properly implemented
+        const values = await formRef.current?.getFormValues();
+
+        if (!values || !specialtyId) {
+          toast.error('Please fill in all required fields correctly');
+          return;
+        }
+
+        console.log('Updating specialty with values:', values);
+
+        // Call the update hook with the values
+        await updateSpec(values);
+
+        toast.success('Specialty updated successfully');
+        handleSuccess();
+        handleSwitchToView();
       }
     } catch (error: any) {
-      toast.error(error?.message || 'Failed to save specialty');
+      console.error('Save error:', error);
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          'Failed to save specialty'
+      );
     } finally {
       setIsSaving(false);
     }
-  }, [currentMode, handleSuccess, handleSwitchToView, handleClose]);
+  }, [currentMode, specialtyId, createSpec, updateSpec, handleSuccess, handleClose, handleSwitchToView]);
 
-  const drawerTitle = 
-    currentMode === 'create'
-      ? 'Create New Specialty'
-      : specialty?.name || 'Specialty Details';
+  const drawerTitle =
+    currentMode === 'create' ? 'Create New Specialty' : specialty?.name || 'Specialty Details';
 
-  const drawerDescription = 
+  const drawerDescription =
     currentMode === 'create'
       ? undefined
       : specialty
-      ? `Code: ${specialty.code} • ${specialty.doctors_count || 0} ${specialty.doctors_count === 1 ? 'doctor' : 'doctors'}`
+      ? `Code: ${specialty.code} • ${specialty.doctors_count || 0} ${
+          specialty.doctors_count === 1 ? 'doctor' : 'doctors'
+        }`
       : undefined;
 
-  const headerActions: DrawerHeaderAction[] = 
+  const headerActions: DrawerHeaderAction[] =
     currentMode === 'view' && specialty
       ? [
           {
@@ -170,7 +224,7 @@ export default function SpecialtyFormDrawer({
         ]
       : [];
 
-  const footerButtons: DrawerActionButton[] = 
+  const footerButtons: DrawerActionButton[] =
     currentMode === 'view'
       ? [
           {
@@ -185,13 +239,13 @@ export default function SpecialtyFormDrawer({
             label: 'Cancel',
             onClick: handleSwitchToView,
             variant: 'outline',
-            disabled: isSaving,
+            disabled: isSaving || updating,
           },
           {
             label: 'Save Changes',
             onClick: handleSave,
             variant: 'default',
-            loading: isSaving,
+            loading: isSaving || updating,
           },
         ]
       : [
@@ -199,13 +253,13 @@ export default function SpecialtyFormDrawer({
             label: 'Cancel',
             onClick: handleClose,
             variant: 'outline',
-            disabled: isSaving,
+            disabled: isSaving || creating,
           },
           {
             label: 'Create Specialty',
             onClick: handleSave,
             variant: 'default',
-            loading: isSaving,
+            loading: isSaving || creating,
           },
         ];
 
@@ -214,20 +268,17 @@ export default function SpecialtyFormDrawer({
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="basic">Basic Info</TabsTrigger>
-          <TabsTrigger 
-            value="doctors" 
-            disabled={currentMode === 'create' || !specialty}
-          >
+          <TabsTrigger value="doctors" disabled={currentMode === 'create' || !specialty}>
             Doctors ({specialty?.doctors_count || 0})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="basic" className="mt-6 space-y-6">
           <SpecialtyBasicInfo
+            ref={formRef}
             specialty={specialty}
             mode={currentMode}
             onSuccess={handleSuccess}
-            // Don't pass onClose - remove any save buttons from the form
           />
         </TabsContent>
 

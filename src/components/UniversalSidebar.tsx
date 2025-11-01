@@ -105,8 +105,8 @@ const menuItems: MenuItem[] = [
   },
 
   {
-    id: "services",
-    label: "services",
+    id: "Services",
+    label: "Services",
     icon: Package,
     children: [
 

@@ -402,7 +402,7 @@ function BillLayoutA4({
         {headerCenterLines.slice(1).map((line, idx) => (
           <div key={idx} style={{ fontSize: 12, lineHeight: 1.25, opacity: 0.9, marginTop: idx ? 2 : 0 }}>
             {line}
-          </div>
+          </div> 
         ))}
       </div>
 
