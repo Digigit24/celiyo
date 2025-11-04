@@ -1,4 +1,3 @@
-// src/pages/opd/ProcedureMastersListPage.tsx - UPDATED VERSION
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useProcedureMasters } from '@/hooks/opd/useProcedureMaster.hooks';
 import type { ProcedureMasterListParams } from '@/types/opd/procedureMaster.types';
@@ -89,9 +88,15 @@ function CategoryBadge({ category }: { category: string }) {
 
 export default function ProcedureMastersListPage() {
   // Drawer state
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerMode, setDrawerMode] = useState<'view' | 'edit' | 'create'>('view');
+  const [drawerState, setDrawerState] = useState<{
+    open: boolean;
+    mode: 'view' | 'edit' | 'create';
+    itemId: number | null;
+  }>({
+    open: false,
+    mode: 'view',
+    itemId: null,
+  });
 
   // server filters
   const [filters, setFilters] = useState<ProcedureMasterListParams>({
@@ -148,44 +153,81 @@ export default function ProcedureMastersListPage() {
     mutate();
   };
 
+  // Single function to open drawer with specific state
+  const openDrawer = useCallback(
+    (mode: 'view' | 'edit' | 'create', itemId: number | null = null) => {
+      console.log('🚀 Opening drawer:', { mode, itemId });
+      setDrawerState({
+        open: true,
+        mode,
+        itemId,
+      });
+    },
+    []
+  );
+
+  // IMPORTANT: accept boolean from SideDrawer
+  const closeDrawer = useCallback((open: boolean) => {
+    if (open) return; // ignore toggles that attempt to re-open
+    console.log('🔒 Closing drawer');
+    setDrawerState({
+      open: false,
+      mode: 'view',
+      itemId: null,
+    });
+  }, []);
+
   // Handle create
   const handleCreate = useCallback(() => {
-    console.log('Opening drawer for CREATE');
-    setSelectedId(null);
-    setDrawerMode('create');
-    setDrawerOpen(true);
-  }, []);
+    openDrawer('create', null);
+  }, [openDrawer]);
 
-  // Handle view - SIMPLIFIED (no complex state transitions)
-  const handleViewProcedure = useCallback((proc: any) => {
-    console.log('Opening drawer for VIEW:', proc.id);
-    setSelectedId(proc.id);
-    setDrawerMode('view');
-    setDrawerOpen(true);
-  }, []);
+  // Handle view
+  const handleViewProcedure = useCallback(
+    (proc: any) => {
+      console.log('👁️ View procedure clicked:', {
+        id: proc.id,
+        code: proc.code,
+        name: proc.name,
+      });
+      openDrawer('view', proc.id);
+    },
+    [openDrawer]
+  );
 
-  // Handle edit (called from within drawer)
-  const handleEditProcedure = useCallback((proc: any) => {
-    console.log('Opening drawer for EDIT:', proc.id);
-    setSelectedId(proc.id);
-    setDrawerMode('edit');
-    setDrawerOpen(true);
-  }, []);
+  // Handle edit
+  const handleEditProcedure = useCallback(
+    (proc: any) => {
+      console.log('✏️ Edit procedure clicked:', { id: proc.id, code: proc.code });
+      openDrawer('edit', proc.id);
+    },
+    [openDrawer]
+  );
 
-  // Handle delete (called from within drawer)
+  // Handle delete (table-level)
   const handleDeleteProcedure = useCallback(async (proc: any) => {
-    // This will be handled inside the drawer
-    console.log('delete procedure', proc.id);
+    console.log('🗑️ Delete procedure clicked:', proc.id);
+    // handled inside drawer
   }, []);
+
+  // Mode change propagated down from drawer
+  const handleDrawerModeChange = useCallback(
+    (newMode: 'view' | 'edit' | 'create') => {
+      console.log('🔄 Drawer mode change requested:', newMode);
+      setDrawerState((prev) => ({
+        ...prev,
+        mode: newMode,
+      }));
+    },
+    []
+  );
 
   // Handle success (after create/update/delete)
   const handleSuccess = useCallback(() => {
+    console.log('✅ Operation successful, refreshing list');
     mutate(); // Refresh list
   }, [mutate]);
 
-  // CRITICAL FIX: Move ALL hooks BEFORE any conditional returns
-  // This ensures hooks are called in the same order every render
-  
   // ------------------ desktop table columns ------------------
   const columns = useMemo<DataTableColumn<any>[]>(() => {
     return [
@@ -229,9 +271,7 @@ export default function ProcedureMastersListPage() {
       {
         key: 'status',
         header: 'Status',
-        cell: (p) => (
-          <ActiveStatusBadge is_active={!!p.is_active} />
-        ),
+        cell: (p) => <ActiveStatusBadge is_active={!!p.is_active} />,
       },
       {
         key: 'desc',
@@ -247,92 +287,87 @@ export default function ProcedureMastersListPage() {
   }, []);
 
   // ------------------ mobile card layout ------------------
-  const renderMobileCard = useCallback(
-    (p: any, actions: any) => {
-      return (
-        <div className="space-y-3 text-sm">
-          {/* Header row: name/code/status */}
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h3 className="font-semibold text-base leading-tight text-slate-900 flex items-center gap-1">
-                  <FileText className="h-4 w-4 text-slate-500" />
-                  <span>{p.name || '—'}</span>
-                </h3>
+  const renderMobileCard = useCallback((p: any, actions: any) => {
+    return (
+      <div className="space-y-3 text-sm">
+        {/* Header row: name/code/status */}
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h3 className="font-semibold text-base leading-tight text-slate-900 flex items-center gap-1">
+                <FileText className="h-4 w-4 text-slate-500" />
+                <span>{p.name || '—'}</span>
+              </h3>
 
-                <span className="text-[11px] text-slate-500 font-mono bg-slate-100 dark:bg-slate-900/40 rounded px-1 py-[1px]">
-                  {p.code || `#${p.id}`}
-                </span>
-              </div>
-
-              <div className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-2 leading-snug">
-                <CategoryBadge category={p.category} />
-              </div>
-
-              <div className="mt-2">
-                <ActiveStatusBadge is_active={!!p.is_active} />
-              </div>
+              <span className="text-[11px] text-slate-500 font-mono bg-slate-100 dark:bg-slate-900/40 rounded px-1 py-[1px]">
+                {p.code || `#${p.id}`}
+              </span>
             </div>
 
-            {/* quick View button */}
+            <div className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-2 leading-snug">
+              <CategoryBadge category={p.category} />
+            </div>
+
+            <div className="mt-2">
+              <ActiveStatusBadge is_active={!!p.is_active} />
+            </div>
+          </div>
+
+          {/* quick View button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={(e) => {
+              e.stopPropagation();
+              actions.view && actions.view();
+            }}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Charge + Desc */}
+        <div className="space-y-2">
+          <div className="text-sm font-medium leading-snug text-slate-900 flex items-center gap-1">
+            <Banknote className="h-4 w-4 text-slate-500" />
+            <span>{formatRupee(p.default_charge)}</span>
+          </div>
+
+          {p.description ? (
+            <div className="text-[11px] text-muted-foreground leading-snug line-clamp-3">
+              {p.description}
+            </div>
+          ) : (
+            <div className="text-[11px] text-muted-foreground leading-snug">
+              No description
+            </div>
+          )}
+        </div>
+
+        {/* Footer row */}
+        <div className="flex items-center justify-between pt-2 border-t text-xs">
+          <span className="text-muted-foreground">ID: {p.id}</span>
+
+          {actions.edit && (
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
               onClick={(e) => {
                 e.stopPropagation();
-                actions.view && actions.view();
+                actions.edit && actions.edit();
               }}
             >
-              <Eye className="h-4 w-4" />
+              Edit
             </Button>
-          </div>
-
-          {/* Charge + Desc */}
-          <div className="space-y-2">
-            <div className="text-sm font-medium leading-snug text-slate-900 flex items-center gap-1">
-              <Banknote className="h-4 w-4 text-slate-500" />
-              <span>{formatRupee(p.default_charge)}</span>
-            </div>
-
-            {p.description ? (
-              <div className="text-[11px] text-muted-foreground leading-snug line-clamp-3">
-                {p.description}
-              </div>
-            ) : (
-              <div className="text-[11px] text-muted-foreground leading-snug">
-                No description
-              </div>
-            )}
-          </div>
-
-          {/* Footer row */}
-          <div className="flex items-center justify-between pt-2 border-t text-xs">
-            <span className="text-muted-foreground">
-              ID: {p.id}
-            </span>
-
-            {actions.edit && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  actions.edit && actions.edit();
-                }}
-              >
-                Edit
-              </Button>
-            )}
-          </div>
+          )}
         </div>
-      );
-    },
-    []
-  );
+      </div>
+    );
+  }, []);
 
-  // Group procedures by category for summary (moved before conditional returns)
+  // Group procedures by category for summary
   const categoryGroups = useMemo(() => {
     const groups: Record<string, number> = {};
     procedureMasters.forEach((p: any) => {
@@ -341,20 +376,24 @@ export default function ProcedureMastersListPage() {
     return groups;
   }, [procedureMasters]);
 
-  // Calculate average charge (moved before conditional returns)
+  // Calculate average charge
   const averageCharge = useMemo(() => {
     if (procedureMasters.length === 0) return 0;
-    return procedureMasters.reduce((sum: number, p: any) => 
-      sum + parseFloat(p.default_charge || '0'), 0) / procedureMasters.length;
+    return (
+      procedureMasters.reduce(
+        (sum: number, p: any) => sum + parseFloat(p.default_charge || '0'),
+        0
+      ) / procedureMasters.length
+    );
   }, [procedureMasters]);
 
-  // Count active procedures (moved before conditional returns)
+  // Count active procedures
   const activeCount = useMemo(() => {
     return procedureMasters.filter((p: any) => p.is_active).length;
   }, [procedureMasters]);
 
-  // ------------------ NOW safe to do conditional returns ------------------
-  
+  // ------------------ Conditional returns ------------------
+
   // INITIAL SKELETON
   if (!hasLoadedOnce && isLoading) {
     return (
@@ -466,26 +505,22 @@ export default function ProcedureMastersListPage() {
         </div>
       </div>
 
-      {/* Table card (filters inline + table + pagination) */}
+      {/* Table card */}
       <div className="bg-white border rounded-lg">
         {/* header + filter bar */}
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between p-4 md:p-6 border-b">
           {/* left side summary + page info */}
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg font-semibold leading-none">
-                Procedure List
-              </h2>
+              <h2 className="text-lg font-semibold leading-none">Procedure List</h2>
               <Badge variant="outline" className="text-[11px] font-normal">
                 {procedureMasters.length} shown / {count} total
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Page {filters.page || 1}
-            </p>
+            <p className="text-xs text-muted-foreground">Page {filters.page || 1}</p>
           </div>
 
-          {/* right side filters (search / category / status) */}
+          {/* right side filters */}
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
             {/* search */}
             <div className="flex flex-col">
@@ -576,9 +611,7 @@ export default function ProcedureMastersListPage() {
             <Button
               variant="outline"
               disabled={!previous}
-              onClick={() =>
-                handleFilterChange('page', (filters.page || 1) - 1)
-              }
+              onClick={() => handleFilterChange('page', (filters.page || 1) - 1)}
               className="sm:min-w-[100px]"
               size="sm"
             >
@@ -592,9 +625,7 @@ export default function ProcedureMastersListPage() {
             <Button
               variant="outline"
               disabled={!next}
-              onClick={() =>
-                handleFilterChange('page', (filters.page || 1) + 1)
-              }
+              onClick={() => handleFilterChange('page', (filters.page || 1) + 1)}
               className="sm:min-w-[100px]"
               size="sm"
             >
@@ -604,15 +635,14 @@ export default function ProcedureMastersListPage() {
         )}
       </div>
 
-      {/* Form Drawer - Handles view/edit/create */}
-      {/* Adding key prop to force remount when switching between different procedures */}
+      {/* Form Drawer — keyed remount to avoid stale state */}
       <ProcedureMasterFormDrawer
-        key={`${selectedId}-${drawerMode}`}
-        itemId={selectedId}
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        mode={drawerMode}
-        onModeChange={setDrawerMode}
+        key={`${drawerState.itemId ?? 'new'}-${drawerState.mode}`}
+        itemId={drawerState.itemId}
+        open={drawerState.open}
+        onOpenChange={closeDrawer}
+        mode={drawerState.mode}
+        onModeChange={handleDrawerModeChange}
         onSuccess={handleSuccess}
       />
     </div>

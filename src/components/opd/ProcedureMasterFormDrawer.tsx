@@ -1,5 +1,3 @@
-// src/components/opd/ProcedureMasterFormDrawer.tsx
-
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   SideDrawer,
@@ -34,6 +32,7 @@ import {
   useUpdateProcedureMaster,
   useDeleteProcedureMaster,
 } from '@/hooks/opd/useProcedureMaster.hooks';
+import { Button } from '../ui/button';
 
 interface ProcedureMasterFormDrawerProps {
   itemId?: number | null;
@@ -77,8 +76,6 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
     onModeChange,
   } = props;
 
-  console.log('Rendering ProcedureMasterFormDrawer with mode:', itemId, mode, open);
-
   // local mode so we can toggle view <-> edit without forcing parent immediately
   const [currentMode, setCurrentMode] = useState<'view' | 'edit' | 'create'>(mode);
 
@@ -109,7 +106,7 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
 
   const isSaving = isCreating || isUpdating;
 
-  // sync down parent mode into local mode when parent changes (eg. parent forces 'create')
+  // sync down parent mode into local mode when parent changes
   useEffect(() => {
     setCurrentMode(mode);
   }, [mode]);
@@ -123,35 +120,39 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
     }
   }, [open]);
 
-  // hydrate form when drawer opens or fetchedItem changes
+  // GUARDED HYDRATION: only hydrate for the record that opened the drawer
   useEffect(() => {
     if (!open) return;
 
-    // create mode: just use defaults
+    // create mode: use defaults
     if (isCreate) {
       setFormData(DEFAULT_FORM_DATA);
       setErrors({});
       return;
     }
 
-    // view / edit mode with data available
-    if (!isFetchingItem && fetchedItem) {
+    if (isFetchingItem) return;
+
+    if (fetchError) {
+      toast.error('Failed to load procedure data');
+      return;
+    }
+
+    if (fetchedItem && itemId && fetchedItem.id === itemId) {
       setFormData({
         code: fetchedItem.code || '',
         name: fetchedItem.name || '',
         category: (fetchedItem.category as ProcedureCategory) || 'laboratory',
         description: fetchedItem.description || '',
-        default_charge: fetchedItem.default_charge || '0.00',
-        is_active:
-          fetchedItem.is_active !== undefined ? fetchedItem.is_active : true,
+        default_charge:
+          fetchedItem.default_charge !== undefined && fetchedItem.default_charge !== null
+            ? String(fetchedItem.default_charge)
+            : '0.00',
+        is_active: fetchedItem.is_active ?? true,
       });
       setErrors({});
-      return;
     }
-
-    // if done loading, no data, and we had an id -> possible deleted / no access
-    // we won't force-reset here because notFound UI handles this
-  }, [open, isCreate, isFetchingItem, fetchedItem]);
+  }, [open, isCreate, isFetchingItem, fetchedItem, fetchError, itemId]);
 
   // -----------------------
   // validation
@@ -186,10 +187,10 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
   // -----------------------
   const handleChange = useCallback(
     (field: keyof ProcedureMasterCreateData, value: any) => {
-      setFormData(prev => ({ ...prev, [field]: value }));
+      setFormData((prev) => ({ ...prev, [field]: value }));
 
       if (errors[field]) {
-        setErrors(prev => {
+        setErrors((prev) => {
           const next = { ...prev };
           delete next[field];
           return next;
@@ -256,12 +257,13 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
         name: fetchedItem.name || '',
         category: (fetchedItem.category as ProcedureCategory) || 'laboratory',
         description: fetchedItem.description || '',
-        default_charge: fetchedItem.default_charge || '0.00',
-        is_active:
-          fetchedItem.is_active !== undefined ? fetchedItem.is_active : true,
+        default_charge:
+          fetchedItem.default_charge !== undefined && fetchedItem.default_charge !== null
+            ? String(fetchedItem.default_charge)
+            : '0.00',
+        is_active: fetchedItem.is_active ?? true,
       });
       setErrors({});
-      console.log('----->', formData);
     }
   }, [fetchedItem, onModeChange]);
 
@@ -379,14 +381,8 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
   // -----------------------
   // high-level loading / not found states
   // -----------------------
-
-  // "true loading" means we're not in create mode and still actively fetching
   const showLoadingState = !isCreate && isFetchingItem;
 
-  // "not found" means we tried to load an existing record,
-  // request is not loading anymore,
-  // but we didn't get data back,
-  // AND it didn't throw `fetchError`
   const notFound =
     open &&
     !isCreate &&
@@ -394,6 +390,41 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
     !fetchedItem &&
     !!itemId &&
     !fetchError;
+
+  if (fetchError) {
+    return (
+      <SideDrawer
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Error Loading Procedure"
+        description="There was a problem loading the procedure data"
+        mode="view"
+        headerActions={[]}
+        isLoading={false}
+        size="xl"
+        footerButtons={[
+          {
+            label: 'Close',
+            onClick: () => onOpenChange(false),
+            variant: 'outline',
+          },
+        ]}
+        footerAlignment="right"
+        showBackButton={true}
+        resizable={true}
+        storageKey="procedure-master-form-drawer-width"
+      >
+        <div className="text-center py-12">
+          <div className="text-red-500 text-sm mb-4">
+            {(fetchError as any)?.message || 'Failed to load procedure data'}
+          </div>
+          <Button onClick={() => onOpenChange(false)} variant="outline">
+            Close
+          </Button>
+        </div>
+      </SideDrawer>
+    );
+  }
 
   if (notFound) {
     return (
@@ -429,7 +460,6 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
   // -----------------------
   // NORMAL RENDER
   // -----------------------
-
   return (
     <SideDrawer
       open={open}
@@ -478,9 +508,7 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
               disabled={isView}
               className={errors.code ? 'border-red-500' : ''}
             />
-            {errors.code && (
-              <p className="text-sm text-red-500">{errors.code}</p>
-            )}
+            {errors.code && <p className="text-sm text-red-500">{errors.code}</p>}
             <p className="text-xs text-muted-foreground">
               Unique identifier for this procedure
             </p>
@@ -499,9 +527,7 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
               disabled={isView}
               className={errors.name ? 'border-red-500' : ''}
             />
-            {errors.name && (
-              <p className="text-sm text-red-500">{errors.name}</p>
-            )}
+            {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
           </div>
 
           {/* Category */}
@@ -516,9 +542,7 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
               }
               disabled={isView}
             >
-              <SelectTrigger
-                className={errors.category ? 'border-red-500' : ''}
-              >
+              <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
@@ -549,16 +573,13 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
                 value={formData.default_charge}
                 onChange={(e) => {
                   const val = e.target.value;
-                  // allow only digits + optional decimal .xx
                   if (/^\d*\.?\d{0,2}$/.test(val) || val === '') {
                     handleChange('default_charge', val);
                   }
                 }}
                 placeholder="0.00"
                 disabled={isView}
-                className={`pl-9 ${
-                  errors.default_charge ? 'border-red-500' : ''
-                }`}
+                className={`pl-9 ${errors.default_charge ? 'border-red-500' : ''}`}
               />
             </div>
             {errors.default_charge && (
@@ -598,9 +619,7 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
             <Switch
               id="is_active"
               checked={formData.is_active}
-              onCheckedChange={(checked) =>
-                handleChange('is_active', checked)
-              }
+              onCheckedChange={(checked) => handleChange('is_active', checked)}
               disabled={isView}
             />
           </div>
@@ -612,38 +631,26 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
             <>
               {/* Info Card */}
               <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
-                <h4 className="font-semibold text-sm">
-                  Procedure Information
-                </h4>
+                <h4 className="font-semibold text-sm">Procedure Information</h4>
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-muted-foreground text-xs">
-                      Procedure Code
-                    </p>
-                    <p className="font-medium font-mono">
-                      {fetchedItem.code}
-                    </p>
+                    <p className="text-muted-foreground text-xs">Procedure Code</p>
+                    <p className="font-medium font-mono">{fetchedItem.code}</p>
                   </div>
 
                   <div>
-                    <p className="text-muted-foreground text-xs">
-                      Category
-                    </p>
+                    <p className="text-muted-foreground text-xs">Category</p>
                     <p className="font-medium capitalize">
                       {String(fetchedItem.category).replace('_', ' ')}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-muted-foreground text-xs">
-                      Default Charge
-                    </p>
+                    <p className="text-muted-foreground text-xs">Default Charge</p>
                     <p className="font-medium">
                       ₹
-                      {parseFloat(
-                        fetchedItem.default_charge
-                      ).toLocaleString('en-IN', {
+                      {parseFloat(fetchedItem.default_charge).toLocaleString('en-IN', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
@@ -664,12 +671,8 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
 
                 {fetchedItem.description && (
                   <div>
-                    <p className="text-muted-foreground text-xs mb-1">
-                      Description
-                    </p>
-                    <p className="text-sm leading-relaxed">
-                      {fetchedItem.description}
-                    </p>
+                    <p className="text-muted-foreground text-xs mb-1">Description</p>
+                    <p className="text-sm leading-relaxed">{fetchedItem.description}</p>
                   </div>
                 )}
               </div>
@@ -683,9 +686,7 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
                     <p className="text-muted-foreground">Created</p>
                     <p className="font-medium">
                       {fetchedItem.created_at
-                        ? new Date(
-                            fetchedItem.created_at
-                          ).toLocaleString('en-IN', {
+                        ? new Date(fetchedItem.created_at).toLocaleString('en-IN', {
                             dateStyle: 'medium',
                             timeStyle: 'short',
                           })
@@ -697,9 +698,7 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
                     <p className="text-muted-foreground">Last Updated</p>
                     <p className="font-medium">
                       {fetchedItem.updated_at
-                        ? new Date(
-                            fetchedItem.updated_at
-                          ).toLocaleString('en-IN', {
+                        ? new Date(fetchedItem.updated_at).toLocaleString('en-IN', {
                             dateStyle: 'medium',
                             timeStyle: 'short',
                           })
@@ -712,10 +711,7 @@ export default function ProcedureMasterFormDrawer(props: ProcedureMasterFormDraw
           ) : (
             <div className="text-center py-12 text-muted-foreground">
               <Info className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>
-                Detailed information will be available after creating the
-                procedure
-              </p>
+              <p>Detailed information will be available after creating the procedure</p>
             </div>
           )}
         </TabsContent>

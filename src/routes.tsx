@@ -37,6 +37,9 @@ const ProcedureBillsListPage = lazy(() => import('./pages/opd/ProcedureBillsList
 const Consultation = lazy(() => import('./pages/Consultation'));
 const OPDBilling = lazy(() => import('./pages/OPDBilling'));
 
+// NEW: Consultation Page (Frontend-only demo)
+const ConsultationPage = lazy(() => import('./pages/ConsultationPage'));
+
 // Loading component
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -181,6 +184,16 @@ export const protectedRoutes: AppRoute[] = [
     ),
     title: 'Consultation',
   },
+  // NEW: Frontend-only consultation demo route
+  {
+    path: '/consultation-demo',
+    element: (
+      <LazyWrapper>
+        <ConsultationPage />
+      </LazyWrapper>
+    ),
+    title: 'Consultation Demo',
+  },
   {
     path: '/opdbilling/:visitId',
     element: (
@@ -286,25 +299,25 @@ export const protectedRoutes: AppRoute[] = [
     ],
   },
   {
-  path: '/pharmacy',
-  element: (
-    <LazyWrapper>
-      <PharmacyMainPage />
-    </LazyWrapper>
-  ),
-  title: 'Pharmacy',
-  icon: 'Pill',
-},
-{
-  path: '/payments',
-  element: (
-    <LazyWrapper>
-      <PaymentsListPage />
-    </LazyWrapper>
-  ),
-  title: 'Payments',
-  icon: 'CreditCard',
-},
+    path: '/pharmacy',
+    element: (
+      <LazyWrapper>
+        <PharmacyMainPage />
+      </LazyWrapper>
+    ),
+    title: 'Pharmacy',
+    icon: 'Pill',
+  },
+  {
+    path: '/payments',
+    element: (
+      <LazyWrapper>
+        <PaymentsListPage />
+      </LazyWrapper>
+    ),
+    title: 'Payments',
+    icon: 'CreditCard',
+  },
 ];
 
 // 404 route

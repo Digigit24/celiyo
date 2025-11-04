@@ -22,20 +22,60 @@ import type {
   ProcedureBillCreateData,
   ProcedureBillUpdateData,
   PaymentRecordData,
-  
 } from '@/types/opd/procedureBill.types';
 import type { PaginatedResponse } from '@/types/opd/common.types';
+
+// ==================== HELPERS ====================
+
+/** Format: PB-YYYYMMDD-#### */
+export function formatBillNumber(date: string, seq: number) {
+  const d = new Date(date);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `PB-${y}${m}${day}-${String(seq).padStart(4, '0')}`;
+}
+
+/**
+ * Get next bill number for a given date by reading the count from server
+ * (Uses the paginated list "count" for that date and adds +1)
+ */
+export function useNextBillNumber(billDate?: string | null) {
+  const enabled = Boolean(billDate);
+  const params: ProcedureBillListParams | undefined = enabled
+    ? { bill_date: billDate as string, page: 1, page_size: 1 }
+    : undefined;
+
+  const queryString = buildQueryString(params);
+  const url = enabled ? `${OPD_API_CONFIG.PROCEDURE_BILLS.LIST}${queryString}` : null;
+
+  const { data, error, isLoading, mutate } = useSWR<
+    PaginatedResponse<ProcedureBill>
+  >(url, () => (enabled ? getProcedureBills(params) : null), {
+    ...DEFAULT_SWR_OPTIONS,
+    revalidateOnFocus: false,
+  });
+
+  const countForDay = data?.count ?? 0;
+  const nextSequence = countForDay + 1;
+  const nextBillNumber =
+    billDate && !isNaN(new Date(billDate).getTime())
+      ? formatBillNumber(billDate, nextSequence)
+      : '';
+
+  return {
+    nextBillNumber,
+    nextSequence,
+    isLoading,
+    error,
+    refresh: mutate,
+  };
+}
 
 // ==================== QUERY HOOKS ====================
 
 /**
  * Hook to fetch paginated procedure bills with filters
- * 
- * @example
- * const { procedureBills, count, isLoading } = useProcedureBills({ 
- *   visit: 123,
- *   payment_status: 'unpaid' 
- * });
  */
 export function useProcedureBills(params?: ProcedureBillListParams) {
   const queryString = buildQueryString(params);
@@ -58,9 +98,6 @@ export function useProcedureBills(params?: ProcedureBillListParams) {
 
 /**
  * Hook to fetch a single procedure bill by ID
- * 
- * @example
- * const { procedureBill, isLoading, mutate } = useProcedureBill(123);
  */
 export function useProcedureBill(id: number | null) {
   const url = id
@@ -70,9 +107,7 @@ export function useProcedureBill(id: number | null) {
   const { data, error, isLoading, mutate } = useSWR<ProcedureBill>(
     url,
     () => (id ? getProcedureBillById(id) : null),
-    {
-      revalidateOnFocus: false,
-    }
+    { revalidateOnFocus: false }
   );
 
   return {
@@ -85,9 +120,6 @@ export function useProcedureBill(id: number | null) {
 
 /**
  * Hook to fetch all procedure bill items
- * 
- * @example
- * const { items, count, isLoading } = useProcedureBillItems();
  */
 export function useProcedureBillItems() {
   const { data, error, isLoading, mutate } = useSWR<
@@ -109,9 +141,6 @@ export function useProcedureBillItems() {
 
 /**
  * Hook to fetch a single procedure bill item by ID
- * 
- * @example
- * const { item, isLoading } = useProcedureBillItem(123);
  */
 export function useProcedureBillItem(id: number | null) {
   const url = id
@@ -121,9 +150,7 @@ export function useProcedureBillItem(id: number | null) {
   const { data, error, isLoading, mutate } = useSWR<ProcedureBillItem>(
     url,
     () => (id ? getProcedureBillItemById(id) : null),
-    {
-      revalidateOnFocus: false,
-    }
+    { revalidateOnFocus: false }
   );
 
   return {
@@ -137,21 +164,7 @@ export function useProcedureBillItem(id: number | null) {
 // ==================== MUTATION HOOKS ====================
 
 /**
- * Hook to create a new procedure bill with items
- * 
- * @example
- * const { createProcedureBill, isCreating, error } = useCreateProcedureBill();
- * await createProcedureBill({
- *   visit: 123,
- *   doctor: 45,
- *   bill_type: 'hospital',
- *   items: [
- *     { procedure: 1, quantity: 1, unit_charge: '500' },
- *     { procedure: 2, quantity: 2, unit_charge: '250' },
- *   ],
- *   discount_percent: '10',
- *   received_amount: '900',
- * });
+ * Create a new procedure bill (pass bill_number when creating)
  */
 export function useCreateProcedureBill() {
   const { trigger, isMutating, error } = useSWRMutation(
@@ -168,15 +181,7 @@ export function useCreateProcedureBill() {
 }
 
 /**
- * Hook to update a procedure bill
- * Note: Updating items will replace all existing items
- * 
- * @example
- * const { updateProcedureBill, isUpdating, error } = useUpdateProcedureBill(123);
- * await updateProcedureBill({ 
- *   discount_percent: '15',
- *   items: [ ... ] // This replaces all existing items
- * });
+ * Update a procedure bill (bill_number is immutable; do not send)
  */
 export function useUpdateProcedureBill(id: number) {
   const url = buildOPDUrl(OPD_API_CONFIG.PROCEDURE_BILLS.UPDATE, { id });
@@ -195,11 +200,7 @@ export function useUpdateProcedureBill(id: number) {
 }
 
 /**
- * Hook to delete a procedure bill
- * 
- * @example
- * const { deleteProcedureBill, isDeleting, error } = useDeleteProcedureBill();
- * await deleteProcedureBill(123);
+ * Delete a procedure bill
  */
 export function useDeleteProcedureBill() {
   const { trigger, isMutating, error } = useSWRMutation(
@@ -218,20 +219,10 @@ export function useDeleteProcedureBill() {
 // ==================== ACTION HOOKS ====================
 
 /**
- * Hook to record a payment for a procedure bill
- * 
- * @example
- * const { recordPayment, isRecording, error } = useRecordProcedureBillPayment(123);
- * await recordPayment({
- *   amount: '450',
- *   payment_mode: 'card',
- *   payment_details: { transaction_id: 'TXN123' }
- * });
+ * Record a payment
  */
 export function useRecordProcedureBillPayment(id: number) {
-  const url = buildOPDUrl(OPD_API_CONFIG.PROCEDURE_BILLS.RECORD_PAYMENT, {
-    id,
-  });
+  const url = buildOPDUrl(OPD_API_CONFIG.PROCEDURE_BILLS.RECORD_PAYMENT, { id });
 
   const { trigger, isMutating, error } = useSWRMutation(
     url,
@@ -247,12 +238,7 @@ export function useRecordProcedureBillPayment(id: number) {
 }
 
 /**
- * Hook to print/generate PDF for a procedure bill
- * 
- * @example
- * const { printBill, isPrinting, error } = usePrintProcedureBill(123);
- * const result = await printBill();
- * // result.pdf_url contains the PDF download link
+ * Print/Generate PDF
  */
 export function usePrintProcedureBill(id: number) {
   const url = buildOPDUrl(OPD_API_CONFIG.PROCEDURE_BILLS.PRINT, { id });

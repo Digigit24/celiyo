@@ -1,5 +1,3 @@
-// src/hooks/opd/useProcedureMaster.hooks.ts
-
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
 import { OPD_API_CONFIG, buildOPDUrl } from '@/lib/apiConfig';
@@ -21,13 +19,11 @@ import type {
 } from '@/types/opd';
 
 /**
- * Take whatever backend gives us and force it into the shape
- * our UI (drawer) expects.
+ * Normalize backend record into the shape UI expects.
  */
 function normalizeProcedureMaster(raw: any): ProcedureMaster {
   if (!raw || typeof raw !== 'object') {
     return {
-      // fallback safe object
       id: 0,
       code: '',
       name: '',
@@ -40,16 +36,9 @@ function normalizeProcedureMaster(raw: any): ProcedureMaster {
     } as unknown as ProcedureMaster;
   }
 
-  // some backends send fields flat (code, name, default_charge ...)
-  // some send "procedure_code", "procedure_name", "price", etc.
-  // some wrap inside `procedure: { ... }`
-  const base = raw.procedure ?? raw; // prefer nested `procedure` if present
+  const base = raw.procedure ?? raw;
 
-  const id =
-    raw.id ??
-    base.id ??
-    raw.pk ??
-    0;
+  const id = raw.id ?? base.id ?? raw.pk ?? 0;
 
   const code =
     base.code ??
@@ -65,10 +54,7 @@ function normalizeProcedureMaster(raw: any): ProcedureMaster {
     raw.procedure_name ??
     '';
 
-  const category =
-    base.category ??
-    raw.category ??
-    'laboratory';
+  const category = base.category ?? raw.category ?? 'laboratory';
 
   const description =
     base.description ??
@@ -77,7 +63,6 @@ function normalizeProcedureMaster(raw: any): ProcedureMaster {
     raw.details ??
     '';
 
-  // default_charge may come as `default_charge`, `price`, `procedure_price`, etc.
   const default_charge_raw =
     base.default_charge ??
     base.price ??
@@ -87,7 +72,6 @@ function normalizeProcedureMaster(raw: any): ProcedureMaster {
     raw.procedure_price ??
     '0.00';
 
-  // force to string with 2 decimals if possible
   let default_charge = '0.00';
   if (
     default_charge_raw !== undefined &&
@@ -95,9 +79,7 @@ function normalizeProcedureMaster(raw: any): ProcedureMaster {
     default_charge_raw !== ''
   ) {
     const num = parseFloat(String(default_charge_raw));
-    default_charge = isNaN(num)
-      ? '0.00'
-      : num.toFixed(2);
+    default_charge = isNaN(num) ? '0.00' : num.toFixed(2);
   }
 
   const is_active =
@@ -107,18 +89,11 @@ function normalizeProcedureMaster(raw: any): ProcedureMaster {
     raw.active ??
     true;
 
-  const created_at =
-    raw.created_at ??
-    base.created_at ??
-    null;
-
-  const updated_at =
-    raw.updated_at ??
-    base.updated_at ??
-    null;
+  const created_at = raw.created_at ?? base.created_at ?? null;
+  const updated_at = raw.updated_at ?? base.updated_at ?? null;
 
   return {
-    ...raw, // keep any extra fields from backend so details tab can still read them if needed
+    ...raw, // preserve extra fields if needed by details tab
     id,
     code,
     name,
@@ -143,7 +118,6 @@ export function useProcedureMasters(params?: ProcedureMasterListParams) {
     url,
     async () => {
       const resp = await getProcedureMasters(params);
-      // normalize each item in the list so table + drawer both get same shape
       return {
         ...resp,
         results: (resp?.results || []).map(normalizeProcedureMaster),
@@ -174,10 +148,7 @@ export function useProcedureMaster(id: number | null) {
 
   const fetcher = async () => {
     if (!shouldFetch) return undefined;
-
     const record = await getProcedureMasterById(id as number);
-
-    // normalize before returning
     return normalizeProcedureMaster(record);
   };
 
@@ -187,16 +158,14 @@ export function useProcedureMaster(id: number | null) {
     isLoading,
     isValidating,
     mutate,
-  } = useSWR<ProcedureMaster | undefined>(
-    url,
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      shouldRetryOnError: false,
-      dedupingInterval: 0,
-    }
-  );
+  } = useSWR<ProcedureMaster | undefined>(url, fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    shouldRetryOnError: false,
+    dedupingInterval: 0,
+    keepPreviousData: false,  // 👈 do NOT keep old row while fetching new
+    fallbackData: undefined,  // 👈 show loading instead of stale data
+  });
 
   const isFetching = shouldFetch && (isLoading || isValidating);
 

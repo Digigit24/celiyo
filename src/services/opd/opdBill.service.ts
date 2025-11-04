@@ -6,15 +6,10 @@ import type {
   OPDBillCreateData,
   OPDBillUpdateData,
   OPDBillListParams,
-  PaymentRecordData,
-  
-} from '@/types/opd/opdBill.types';
-
-import type {
- 
   PaginatedResponse,
   ApiResponse,
-} from '@/types/opd/common.types';
+  PaymentMode,
+} from '@/types/opd.types';
 
 // ==================== OPD BILLS ====================
 
@@ -27,18 +22,18 @@ export const getOPDBills = async (
 
 export const getOPDBillById = async (id: number): Promise<OPDBill> => {
   const url = buildOPDUrl(OPD_API_CONFIG.OPD_BILLS.DETAIL, { id });
-  const response = await apiClient.get<ApiResponse<OPDBill>>(url);
-  return response.data.data;
+  const response = await apiClient.get<OPDBill>(url);
+  return response.data;
 };
 
 export const createOPDBill = async (
   data: OPDBillCreateData
 ): Promise<OPDBill> => {
-  const response = await apiClient.post<ApiResponse<OPDBill>>(
+  const response = await apiClient.post<OPDBill>(
     OPD_API_CONFIG.OPD_BILLS.CREATE,
     data
   );
-  return response.data.data;
+  return response.data;
 };
 
 export const updateOPDBill = async (
@@ -46,8 +41,8 @@ export const updateOPDBill = async (
   data: OPDBillUpdateData
 ): Promise<OPDBill> => {
   const url = buildOPDUrl(OPD_API_CONFIG.OPD_BILLS.UPDATE, { id });
-  const response = await apiClient.patch<ApiResponse<OPDBill>>(url, data);
-  return response.data.data;
+  const response = await apiClient.patch<OPDBill>(url, data);
+  return response.data;
 };
 
 export const deleteOPDBill = async (id: number): Promise<void> => {
@@ -57,12 +52,18 @@ export const deleteOPDBill = async (id: number): Promise<void> => {
 
 // ==================== OPD BILL ACTIONS ====================
 
+export interface PaymentRecordData {
+  amount: string;
+  payment_mode: PaymentMode;
+  payment_details?: string;
+}
+
 export const recordPayment = async (
   id: number,
   data: PaymentRecordData
-): Promise<ApiResponse<OPDBill>> => {
+): Promise<OPDBill> => {
   const url = buildOPDUrl(OPD_API_CONFIG.OPD_BILLS.RECORD_PAYMENT, { id });
-  const response = await apiClient.post<ApiResponse<OPDBill>>(url, data);
+  const response = await apiClient.post<OPDBill>(url, data);
   return response.data;
 };
 
