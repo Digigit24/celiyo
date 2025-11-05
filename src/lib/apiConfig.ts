@@ -4,7 +4,7 @@
 // src/lib/apiConfig.ts
 
 export const API_CONFIG = {
-  BASE_URL: 'https://hms.dglinkup.com/api',
+  BASE_URL: 'http://127.0.0.1:8000/api',
 
   // ==================== AUTHENTICATION ====================
   AUTH: {
