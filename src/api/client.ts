@@ -53,9 +53,9 @@ export const tokenManager = {
   },
 };
 
-// Create axios instance
+// Create axios instance for HMS API
 const apiClient: AxiosInstance = axios.create({
-  baseURL: API_CONFIG.BASE_URL,
+  baseURL: API_CONFIG.HMS_BASE_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
