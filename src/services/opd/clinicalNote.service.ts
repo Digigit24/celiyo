@@ -1,5 +1,5 @@
 // src/services/opd/clinicalNote.service.ts
-import apiClient from '@/api/client';
+import { hmsClient } from '@/lib/client';
 import { OPD_API_CONFIG, buildOPDUrl } from '@/lib/apiConfig';
 import type {
   ClinicalNote,
@@ -19,7 +19,7 @@ import type {
 export const getClinicalNotes = async (
   params?: ClinicalNoteListParams
 ): Promise<PaginatedResponse<ClinicalNote>> => {
-  const response = await apiClient.get(OPD_API_CONFIG.CLINICAL_NOTES.LIST, {
+  const response = await hmsClient.get(OPD_API_CONFIG.CLINICAL_NOTES.LIST, {
     params,
   });
   return response.data;
@@ -27,14 +27,14 @@ export const getClinicalNotes = async (
 
 export const getClinicalNoteById = async (id: number): Promise<ClinicalNote> => {
   const url = buildOPDUrl(OPD_API_CONFIG.CLINICAL_NOTES.DETAIL, { id });
-  const response = await apiClient.get<ApiResponse<ClinicalNote>>(url);
+  const response = await hmsClient.get<ApiResponse<ClinicalNote>>(url);
   return response.data.data;
 };
 
 export const createClinicalNote = async (
   data: ClinicalNoteCreateData
 ): Promise<ClinicalNote> => {
-  const response = await apiClient.post<ApiResponse<ClinicalNote>>(
+  const response = await hmsClient.post<ApiResponse<ClinicalNote>>(
     OPD_API_CONFIG.CLINICAL_NOTES.CREATE,
     data
   );
@@ -46,11 +46,11 @@ export const updateClinicalNote = async (
   data: ClinicalNoteUpdateData
 ): Promise<ClinicalNote> => {
   const url = buildOPDUrl(OPD_API_CONFIG.CLINICAL_NOTES.UPDATE, { id });
-  const response = await apiClient.patch<ApiResponse<ClinicalNote>>(url, data);
+  const response = await hmsClient.patch<ApiResponse<ClinicalNote>>(url, data);
   return response.data.data;
 };
 
 export const deleteClinicalNote = async (id: number): Promise<void> => {
   const url = buildOPDUrl(OPD_API_CONFIG.CLINICAL_NOTES.DELETE, { id });
-  await apiClient.delete(url);
+  await hmsClient.delete(url);
 };

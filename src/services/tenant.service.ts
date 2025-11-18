@@ -1,6 +1,6 @@
 // src/services/tenant.service.ts
 
-import apiClient from '@/api/client';
+import { hmsClient } from '@/lib/client';
 import { API_CONFIG, buildUrl } from '@/lib/apiConfig';
 import type {
   Tenant,
@@ -27,14 +27,14 @@ import type {
 export const getTenants = async (
   params?: TenantListParams
 ): Promise<PaginatedResponse<Tenant>> => {
-  const response = await apiClient.get(API_CONFIG.TENANTS.LIST, { params });
+  const response = await hmsClient.get(API_CONFIG.TENANTS.LIST, { params });
   return response.data;
 };
 
 // GET Tenant by ID
 export const getTenantById = async (id: number): Promise<Tenant> => {
   const url = buildUrl(API_CONFIG.TENANTS.DETAIL, { id });
-  const response = await apiClient.get<Tenant>(url);
+  const response = await hmsClient.get<Tenant>(url);
   return response.data;
 };
 
@@ -42,7 +42,7 @@ export const getTenantById = async (id: number): Promise<Tenant> => {
 export const createTenant = async (
   data: TenantCreateData
 ): Promise<Tenant> => {
-  const response = await apiClient.post<Tenant>(
+  const response = await hmsClient.post<Tenant>(
     API_CONFIG.TENANTS.CREATE,
     data
   );
@@ -55,14 +55,14 @@ export const updateTenant = async (
   data: TenantUpdateData
 ): Promise<Tenant> => {
   const url = buildUrl(API_CONFIG.TENANTS.UPDATE, { id });
-  const response = await apiClient.patch<Tenant>(url, data);
+  const response = await hmsClient.patch<Tenant>(url, data);
   return response.data;
 };
 
 // DELETE Tenant
 export const deleteTenant = async (id: number): Promise<void> => {
   const url = buildUrl(API_CONFIG.TENANTS.DELETE, { id });
-  await apiClient.delete(url);
+  await hmsClient.delete(url);
 };
 
 // ACTIVATE Tenant
@@ -71,14 +71,14 @@ export const activateTenant = async (
   data?: TenantActivateData
 ): Promise<Tenant> => {
   const url = buildUrl(API_CONFIG.TENANTS.ACTIVATE, { id });
-  const response = await apiClient.post<Tenant>(url, data || {});
+  const response = await hmsClient.post<Tenant>(url, data || {});
   return response.data;
 };
 
 // DEACTIVATE Tenant
 export const deactivateTenant = async (id: number): Promise<Tenant> => {
   const url = buildUrl(API_CONFIG.TENANTS.DEACTIVATE, { id });
-  const response = await apiClient.post<Tenant>(url);
+  const response = await hmsClient.post<Tenant>(url);
   return response.data;
 };
 
@@ -87,7 +87,7 @@ export const testTenantConnection = async (
   id: number
 ): Promise<ConnectionTestResponse> => {
   const url = buildUrl(API_CONFIG.TENANTS.TEST_CONNECTION, { id });
-  const response = await apiClient.post<ConnectionTestResponse>(url);
+  const response = await hmsClient.post<ConnectionTestResponse>(url);
   return response.data;
 };
 
@@ -96,20 +96,20 @@ export const runTenantMigrations = async (
   id: number
 ): Promise<MigrationResponse> => {
   const url = buildUrl(API_CONFIG.TENANTS.RUN_MIGRATIONS, { id });
-  const response = await apiClient.post<MigrationResponse>(url);
+  const response = await hmsClient.post<MigrationResponse>(url);
   return response.data;
 };
 
 // GET Tenant Statistics
 export const getTenantStats = async (id: number): Promise<TenantStats> => {
   const url = buildUrl(API_CONFIG.TENANTS.STATS, { id });
-  const response = await apiClient.get<TenantStats>(url);
+  const response = await hmsClient.get<TenantStats>(url);
   return response.data;
 };
 
 // GET Dashboard Statistics
 export const getDashboardStats = async (): Promise<DashboardStats> => {
-  const response = await apiClient.get<DashboardStats>(
+  const response = await hmsClient.get<DashboardStats>(
     API_CONFIG.TENANTS.DASHBOARD
   );
   return response.data;
@@ -119,7 +119,7 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 export const onboardTenant = async (
   data: TenantOnboardData
 ): Promise<TenantOnboardResponse> => {
-  const response = await apiClient.post<TenantOnboardResponse>(
+  const response = await hmsClient.post<TenantOnboardResponse>(
     API_CONFIG.TENANTS.ONBOARD,
     data
   );
@@ -130,7 +130,7 @@ export const onboardTenant = async (
 export const checkSubdomainAvailability = async (
   subdomain: string
 ): Promise<SubdomainCheckResponse> => {
-  const response = await apiClient.get<SubdomainCheckResponse>(
+  const response = await hmsClient.get<SubdomainCheckResponse>(
     API_CONFIG.TENANTS.CHECK_SUBDOMAIN,
     {
       params: { subdomain },
@@ -141,7 +141,7 @@ export const checkSubdomainAvailability = async (
 
 // GET Neon Projects
 export const getNeonProjects = async (): Promise<NeonProject[]> => {
-  const response = await apiClient.get<NeonProject[]>(
+  const response = await hmsClient.get<NeonProject[]>(
     API_CONFIG.NEON.PROJECTS
   );
   return response.data;
@@ -152,7 +152,7 @@ export const getNeonBranches = async (
   projectId: string
 ): Promise<NeonBranch[]> => {
   const url = buildUrl(API_CONFIG.NEON.BRANCHES, { project_id: projectId });
-  const response = await apiClient.get<NeonBranch[]>(url);
+  const response = await hmsClient.get<NeonBranch[]>(url);
   return response.data;
 };
 
@@ -160,7 +160,7 @@ export const getNeonBranches = async (
 export const getTenantSettings = async (): Promise<
   PaginatedResponse<TenantSettings>
 > => {
-  const response = await apiClient.get<PaginatedResponse<TenantSettings>>(
+  const response = await hmsClient.get<PaginatedResponse<TenantSettings>>(
     API_CONFIG.TENANTS.SETTINGS_LIST
   );
   return response.data;
@@ -182,7 +182,7 @@ export const updateTenantSettings = async (
         formData.append(key, value as string | Blob);
       }
     });
-    const response = await apiClient.patch<TenantSettings>(url, formData, {
+    const response = await hmsClient.patch<TenantSettings>(url, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -191,6 +191,6 @@ export const updateTenantSettings = async (
   }
   
   // Otherwise use JSON
-  const response = await apiClient.patch<TenantSettings>(url, data);
+  const response = await hmsClient.patch<TenantSettings>(url, data);
   return response.data;
 };

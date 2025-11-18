@@ -1,5 +1,5 @@
 // src/services/service.service.ts
-import apiClient from '@/api/client';
+import { hmsClient } from '@/lib/client';
 import { API_CONFIG } from '@/lib/apiConfig';
 import type {
   ServiceCategory,
@@ -28,14 +28,14 @@ import type {
 export const getServiceCategories = async (
   params?: ServiceCategoryListParams
 ): Promise<PaginatedResponse<ServiceCategory>> => {
-  const response = await apiClient.get(API_CONFIG.SERVICES.CATEGORIES_LIST, { params });
+  const response = await hmsClient.get(API_CONFIG.SERVICES.CATEGORIES_LIST, { params });
   return response.data;
 };
 
 // Get single Service Category by ID
 export const getServiceCategoryById = async (id: number): Promise<ServiceCategory> => {
   const url = API_CONFIG.SERVICES.CATEGORY_DETAIL.replace(':id', String(id));
-  const response = await apiClient.get<ServiceCategory>(url);
+  const response = await hmsClient.get<ServiceCategory>(url);
   return response.data;
 };
 
@@ -56,7 +56,7 @@ export const createServiceCategory = async (
     requestData = formData;
   }
   
-  const response = await apiClient.post<ServiceCategory>(
+  const response = await hmsClient.post<ServiceCategory>(
     API_CONFIG.SERVICES.CATEGORY_CREATE,
     requestData,
     data.icon instanceof File ? { headers: { 'Content-Type': 'multipart/form-data' } } : {}
@@ -84,7 +84,7 @@ export const updateServiceCategory = async (
     requestData = formData;
   }
   
-  const response = await apiClient.patch<ServiceCategory>(
+  const response = await hmsClient.patch<ServiceCategory>(
     url,
     requestData,
     data.icon instanceof File ? { headers: { 'Content-Type': 'multipart/form-data' } } : {}
@@ -95,7 +95,7 @@ export const updateServiceCategory = async (
 // Delete Service Category
 export const deleteServiceCategory = async (id: number): Promise<void> => {
   const url = API_CONFIG.SERVICES.CATEGORY_DELETE.replace(':id', String(id));
-  await apiClient.delete(url);
+  await hmsClient.delete(url);
 };
 
 // ==================== DIAGNOSTIC TESTS ====================
@@ -104,21 +104,21 @@ export const deleteServiceCategory = async (id: number): Promise<void> => {
 export const getDiagnosticTests = async (
   params?: DiagnosticTestListParams
 ): Promise<PaginatedResponse<DiagnosticTest>> => {
-  const response = await apiClient.get(API_CONFIG.SERVICES.DIAGNOSTIC_TESTS_LIST, { params });
+  const response = await hmsClient.get(API_CONFIG.SERVICES.DIAGNOSTIC_TESTS_LIST, { params });
   return response.data;
 };
 
 // Get single Diagnostic Test by ID
 export const getDiagnosticTestById = async (id: number): Promise<DiagnosticTest> => {
   const url = API_CONFIG.SERVICES.DIAGNOSTIC_TEST_DETAIL.replace(':id', String(id));
-  const response = await apiClient.get<DiagnosticTest>(url);
+  const response = await hmsClient.get<DiagnosticTest>(url);
   return response.data;
 };
 
 // Get Diagnostic Tests by Category ID - with client-side filtering as fallback
 export const getDiagnosticTestsByCategory = async (categoryId: number): Promise<DiagnosticTest[]> => {
   try {
-    const response = await apiClient.get<PaginatedResponse<DiagnosticTest>>(
+    const response = await hmsClient.get<PaginatedResponse<DiagnosticTest>>(
       API_CONFIG.SERVICES.DIAGNOSTIC_TESTS_LIST,
       { 
         params: { 
@@ -164,7 +164,7 @@ export const createDiagnosticTest = async (
     requestData = formData;
   }
   
-  const response = await apiClient.post<DiagnosticTest>(
+  const response = await hmsClient.post<DiagnosticTest>(
     API_CONFIG.SERVICES.DIAGNOSTIC_TEST_CREATE,
     requestData,
     data.image instanceof File ? { headers: { 'Content-Type': 'multipart/form-data' } } : {}
@@ -205,7 +205,7 @@ export const updateDiagnosticTest = async (
     requestData = formData;
   }
   
-  const response = await apiClient.patch<DiagnosticTest>(
+  const response = await hmsClient.patch<DiagnosticTest>(
     url,
     requestData,
     data.image instanceof File ? { headers: { 'Content-Type': 'multipart/form-data' } } : {}
@@ -216,7 +216,7 @@ export const updateDiagnosticTest = async (
 // Delete Diagnostic Test
 export const deleteDiagnosticTest = async (id: number): Promise<void> => {
   const url = API_CONFIG.SERVICES.DIAGNOSTIC_TEST_DELETE.replace(':id', String(id));
-  await apiClient.delete(url);
+  await hmsClient.delete(url);
 };
 
 // ==================== NURSING CARE PACKAGES ====================
@@ -225,14 +225,14 @@ export const deleteDiagnosticTest = async (id: number): Promise<void> => {
 export const getNursingCarePackages = async (
   params?: NursingCarePackageListParams
 ): Promise<PaginatedResponse<NursingCarePackage>> => {
-  const response = await apiClient.get(API_CONFIG.SERVICES.NURSING_PACKAGES_LIST, { params });
+  const response = await hmsClient.get(API_CONFIG.SERVICES.NURSING_PACKAGES_LIST, { params });
   return response.data;
 };
 
 // Get single Nursing Care Package by ID
 export const getNursingCarePackageById = async (id: number): Promise<NursingCarePackage> => {
   const url = API_CONFIG.SERVICES.NURSING_PACKAGE_DETAIL.replace(':id', String(id));
-  const response = await apiClient.get<NursingCarePackage>(url);
+  const response = await hmsClient.get<NursingCarePackage>(url);
   return response.data;
 };
 
@@ -241,7 +241,7 @@ export const getNursingCarePackagesByCategory = async (
   categoryId: number
 ): Promise<NursingCarePackage[]> => {
   try {
-    const response = await apiClient.get<PaginatedResponse<NursingCarePackage>>(
+    const response = await hmsClient.get<PaginatedResponse<NursingCarePackage>>(
       API_CONFIG.SERVICES.NURSING_PACKAGES_LIST,
       { 
         params: { 
@@ -285,7 +285,7 @@ export const createNursingCarePackage = async (
     requestData = formData;
   }
   
-  const response = await apiClient.post<NursingCarePackage>(
+  const response = await hmsClient.post<NursingCarePackage>(
     API_CONFIG.SERVICES.NURSING_PACKAGE_CREATE,
     requestData,
     data.image instanceof File ? { headers: { 'Content-Type': 'multipart/form-data' } } : {}
@@ -324,7 +324,7 @@ export const updateNursingCarePackage = async (
     requestData = formData;
   }
   
-  const response = await apiClient.patch<NursingCarePackage>(
+  const response = await hmsClient.patch<NursingCarePackage>(
     url,
     requestData,
     data.image instanceof File ? { headers: { 'Content-Type': 'multipart/form-data' } } : {}
@@ -335,7 +335,7 @@ export const updateNursingCarePackage = async (
 // Delete Nursing Care Package
 export const deleteNursingCarePackage = async (id: number): Promise<void> => {
   const url = API_CONFIG.SERVICES.NURSING_PACKAGE_DELETE.replace(':id', String(id));
-  await apiClient.delete(url);
+  await hmsClient.delete(url);
 };
 
 // ==================== HOME HEALTHCARE SERVICES ====================
@@ -344,14 +344,14 @@ export const deleteNursingCarePackage = async (id: number): Promise<void> => {
 export const getHomeHealthcareServices = async (
   params?: HomeHealthcareServiceListParams
 ): Promise<PaginatedResponse<HomeHealthcareService>> => {
-  const response = await apiClient.get(API_CONFIG.SERVICES.HOME_HEALTHCARE_LIST, { params });
+  const response = await hmsClient.get(API_CONFIG.SERVICES.HOME_HEALTHCARE_LIST, { params });
   return response.data;
 };
 
 // Get single Home Healthcare Service by ID
 export const getHomeHealthcareServiceById = async (id: number): Promise<HomeHealthcareService> => {
   const url = API_CONFIG.SERVICES.HOME_HEALTHCARE_DETAIL.replace(':id', String(id));
-  const response = await apiClient.get<HomeHealthcareService>(url);
+  const response = await hmsClient.get<HomeHealthcareService>(url);
   return response.data;
 };
 
@@ -360,7 +360,7 @@ export const getHomeHealthcareServicesByCategory = async (
   categoryId: number
 ): Promise<HomeHealthcareService[]> => {
   try {
-    const response = await apiClient.get<PaginatedResponse<HomeHealthcareService>>(
+    const response = await hmsClient.get<PaginatedResponse<HomeHealthcareService>>(
       API_CONFIG.SERVICES.HOME_HEALTHCARE_LIST,
       { 
         params: { 
@@ -404,7 +404,7 @@ export const createHomeHealthcareService = async (
     requestData = formData;
   }
   
-  const response = await apiClient.post<HomeHealthcareService>(
+  const response = await hmsClient.post<HomeHealthcareService>(
     API_CONFIG.SERVICES.HOME_HEALTHCARE_CREATE,
     requestData,
     data.image instanceof File ? { headers: { 'Content-Type': 'multipart/form-data' } } : {}
@@ -443,7 +443,7 @@ export const updateHomeHealthcareService = async (
     requestData = formData;
   }
   
-  const response = await apiClient.patch<HomeHealthcareService>(
+  const response = await hmsClient.patch<HomeHealthcareService>(
     url,
     requestData,
     data.image instanceof File ? { headers: { 'Content-Type': 'multipart/form-data' } } : {}
@@ -454,5 +454,5 @@ export const updateHomeHealthcareService = async (
 // Delete Home Healthcare Service
 export const deleteHomeHealthcareService = async (id: number): Promise<void> => {
   const url = API_CONFIG.SERVICES.HOME_HEALTHCARE_DELETE.replace(':id', String(id));
-  await apiClient.delete(url);
+  await hmsClient.delete(url);
 };

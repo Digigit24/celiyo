@@ -1,5 +1,5 @@
 // src/services/opd/procedureMaster.service.ts
-import apiClient from '@/api/client';
+import { hmsClient } from '@/lib/client';
 import { OPD_API_CONFIG, buildOPDUrl } from '@/lib/apiConfig';
 import type {
   ProcedureMaster,
@@ -20,7 +20,7 @@ import type {
 export const getProcedureMasters = async (
   params?: ProcedureMasterListParams
 ): Promise<PaginatedResponse<ProcedureMaster>> => {
-  const response = await apiClient.get(OPD_API_CONFIG.PROCEDURE_MASTERS.LIST, {
+  const response = await hmsClient.get(OPD_API_CONFIG.PROCEDURE_MASTERS.LIST, {
     params,
   });
   return response.data;
@@ -30,14 +30,14 @@ export const getProcedureMasterById = async (
   id: number
 ): Promise<ProcedureMaster> => {
   const url = buildOPDUrl(OPD_API_CONFIG.PROCEDURE_MASTERS.DETAIL, { id });
-  const response = await apiClient.get<ApiResponse<ProcedureMaster>>(url);
+  const response = await hmsClient.get<ApiResponse<ProcedureMaster>>(url);
   return response.data.data;
 };
 
 export const createProcedureMaster = async (
   data: ProcedureMasterCreateData
 ): Promise<ProcedureMaster> => {
-  const response = await apiClient.post<ApiResponse<ProcedureMaster>>(
+  const response = await hmsClient.post<ApiResponse<ProcedureMaster>>(
     OPD_API_CONFIG.PROCEDURE_MASTERS.CREATE,
     data
   );
@@ -49,7 +49,7 @@ export const updateProcedureMaster = async (
   data: ProcedureMasterUpdateData
 ): Promise<ProcedureMaster> => {
   const url = buildOPDUrl(OPD_API_CONFIG.PROCEDURE_MASTERS.UPDATE, { id });
-  const response = await apiClient.patch<ApiResponse<ProcedureMaster>>(
+  const response = await hmsClient.patch<ApiResponse<ProcedureMaster>>(
     url,
     data
   );
@@ -58,5 +58,5 @@ export const updateProcedureMaster = async (
 
 export const deleteProcedureMaster = async (id: number): Promise<void> => {
   const url = buildOPDUrl(OPD_API_CONFIG.PROCEDURE_MASTERS.DELETE, { id });
-  await apiClient.delete(url);
+  await hmsClient.delete(url);
 };

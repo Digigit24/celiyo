@@ -1,6 +1,6 @@
 // src/services/opd/findings.service.ts
 
-import apiClient from '@/api/client';
+import { hmsClient } from '@/lib/client';
 import { API_CONFIG, buildUrl } from '@/lib/apiConfig';
 
 import type {
@@ -24,7 +24,7 @@ import type {
 export const getFindings = async (
   params?: FindingListParams
 ): Promise<PaginatedResponse<Finding>> => {
-  const response = await apiClient.get(API_CONFIG.VISIT_FINDINGS.LIST, {
+  const response = await hmsClient.get(API_CONFIG.VISIT_FINDINGS.LIST, {
     params,
   });
   return response.data;
@@ -35,7 +35,7 @@ export const getFindings = async (
  */
 export const getFindingById = async (id: number): Promise<Finding> => {
   const url = buildUrl(API_CONFIG.VISIT_FINDINGS.DETAIL, { id });
-  const response = await apiClient.get<ApiResponse<Finding>>(url);
+  const response = await hmsClient.get<ApiResponse<Finding>>(url);
   return response.data.data;
 };
 
@@ -46,7 +46,7 @@ export const getFindingById = async (id: number): Promise<Finding> => {
 export const createFinding = async (
   data: FindingCreateData
 ): Promise<Finding> => {
-  const response = await apiClient.post<ApiResponse<Finding>>(
+  const response = await hmsClient.post<ApiResponse<Finding>>(
     API_CONFIG.VISIT_FINDINGS.CREATE,
     data
   );
@@ -62,7 +62,7 @@ export const updateFinding = async (
   data: FindingUpdateData
 ): Promise<Finding> => {
   const url = buildUrl(API_CONFIG.VISIT_FINDINGS.UPDATE, { id });
-  const response = await apiClient.patch<ApiResponse<Finding>>(url, data);
+  const response = await hmsClient.patch<ApiResponse<Finding>>(url, data);
   return response.data.data;
 };
 
@@ -71,5 +71,5 @@ export const updateFinding = async (
  */
 export const deleteFinding = async (id: number): Promise<void> => {
   const url = buildUrl(API_CONFIG.VISIT_FINDINGS.DELETE, { id });
-  await apiClient.delete(url);
+  await hmsClient.delete(url);
 };

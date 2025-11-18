@@ -1,4 +1,4 @@
-import apiClient from '@/api/client';
+import { hmsClient } from '@/lib/client';
 import { API_CONFIG } from '@/lib/apiConfig';
 import type {
   AppointmentList,
@@ -19,7 +19,7 @@ import type {
 export const getAppointments = async (
   params?: AppointmentListParams
 ): Promise<PaginatedResponse<AppointmentList>> => {
-  const response = await apiClient.get<PaginatedResponse<AppointmentList>>(
+  const response = await hmsClient.get<PaginatedResponse<AppointmentList>>(
     API_CONFIG.HMS.APPOINTMENTS.LIST,
     { params }
   );
@@ -31,7 +31,7 @@ export const getAppointmentById = async (
   id: number
 ): Promise<AppointmentDetail> => {
   const url = API_CONFIG.HMS.APPOINTMENTS.DETAIL.replace(':id', String(id));
-  const response = await apiClient.get<AppointmentDetail>(url);
+  const response = await hmsClient.get<AppointmentDetail>(url);
   return response.data;
 };
 
@@ -39,7 +39,7 @@ export const getAppointmentById = async (
 export const createAppointment = async (
   data: AppointmentCreateData
 ): Promise<AppointmentDetail> => {
-  const response = await apiClient.post<ApiResponse<AppointmentDetail>>(
+  const response = await hmsClient.post<ApiResponse<AppointmentDetail>>(
     API_CONFIG.HMS.APPOINTMENTS.CREATE,
     data
   );
@@ -52,7 +52,7 @@ export const updateAppointment = async (
   data: AppointmentUpdateData
 ): Promise<AppointmentDetail> => {
   const url = API_CONFIG.HMS.APPOINTMENTS.UPDATE.replace(':id', String(id));
-  const response = await apiClient.patch<ApiResponse<AppointmentDetail>>(
+  const response = await hmsClient.patch<ApiResponse<AppointmentDetail>>(
     url,
     data
   );
@@ -65,7 +65,7 @@ export const deleteAppointment = async (
   cancellation_reason?: string
 ): Promise<void> => {
   const url = API_CONFIG.HMS.APPOINTMENTS.DELETE.replace(':id', String(id));
-  await apiClient.delete(url, {
+  await hmsClient.delete(url, {
     data: { cancellation_reason },
   });
 };
@@ -75,7 +75,7 @@ export const checkInAppointment = async (
   id: number
 ): Promise<AppointmentDetail> => {
   const url = API_CONFIG.HMS.APPOINTMENTS.CHECK_IN.replace(':id', String(id));
-  const response = await apiClient.post<ApiResponse<AppointmentDetail>>(url);
+  const response = await hmsClient.post<ApiResponse<AppointmentDetail>>(url);
   return response.data.data;
 };
 
@@ -84,7 +84,7 @@ export const startAppointment = async (
   id: number
 ): Promise<AppointmentDetail> => {
   const url = API_CONFIG.HMS.APPOINTMENTS.START.replace(':id', String(id));
-  const response = await apiClient.post<ApiResponse<AppointmentDetail>>(url);
+  const response = await hmsClient.post<ApiResponse<AppointmentDetail>>(url);
   return response.data.data;
 };
 
@@ -93,13 +93,13 @@ export const completeAppointment = async (
   id: number
 ): Promise<AppointmentDetail> => {
   const url = API_CONFIG.HMS.APPOINTMENTS.COMPLETE.replace(':id', String(id));
-  const response = await apiClient.post<ApiResponse<AppointmentDetail>>(url);
+  const response = await hmsClient.post<ApiResponse<AppointmentDetail>>(url);
   return response.data.data;
 };
 
 // GET today's appointments
 export const getTodayAppointments = async (): Promise<AppointmentList[]> => {
-  const response = await apiClient.get<ApiResponse<AppointmentList[]>>(
+  const response = await hmsClient.get<ApiResponse<AppointmentList[]>>(
     API_CONFIG.HMS.APPOINTMENTS.TODAY
   );
   return response.data.data;
@@ -107,7 +107,7 @@ export const getTodayAppointments = async (): Promise<AppointmentList[]> => {
 
 // GET upcoming appointments
 export const getUpcomingAppointments = async (): Promise<AppointmentList[]> => {
-  const response = await apiClient.get<ApiResponse<AppointmentList[]>>(
+  const response = await hmsClient.get<ApiResponse<AppointmentList[]>>(
     API_CONFIG.HMS.APPOINTMENTS.UPCOMING
   );
   return response.data.data;

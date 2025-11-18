@@ -1,5 +1,5 @@
 // src/services/opd/visitAttachment.service.ts
-import apiClient from '@/api/client';
+import { hmsClient } from '@/lib/client';
 import { OPD_API_CONFIG, buildOPDUrl } from '@/lib/apiConfig';
 import type {
   VisitAttachment,
@@ -20,7 +20,7 @@ import type {
 export const getVisitAttachments = async (
   params?: VisitAttachmentListParams
 ): Promise<PaginatedResponse<VisitAttachment>> => {
-  const response = await apiClient.get(OPD_API_CONFIG.VISIT_ATTACHMENTS.LIST, {
+  const response = await hmsClient.get(OPD_API_CONFIG.VISIT_ATTACHMENTS.LIST, {
     params,
   });
   return response.data;
@@ -30,7 +30,7 @@ export const getVisitAttachmentById = async (
   id: number
 ): Promise<VisitAttachment> => {
   const url = buildOPDUrl(OPD_API_CONFIG.VISIT_ATTACHMENTS.DETAIL, { id });
-  const response = await apiClient.get<ApiResponse<VisitAttachment>>(url);
+  const response = await hmsClient.get<ApiResponse<VisitAttachment>>(url);
   return response.data.data;
 };
 
@@ -45,7 +45,7 @@ export const createVisitAttachment = async (
     formData.append('description', data.description);
   }
 
-  const response = await apiClient.post<ApiResponse<VisitAttachment>>(
+  const response = await hmsClient.post<ApiResponse<VisitAttachment>>(
     OPD_API_CONFIG.VISIT_ATTACHMENTS.CREATE,
     formData,
     {
@@ -62,7 +62,7 @@ export const updateVisitAttachment = async (
   data: VisitAttachmentUpdateData
 ): Promise<VisitAttachment> => {
   const url = buildOPDUrl(OPD_API_CONFIG.VISIT_ATTACHMENTS.UPDATE, { id });
-  const response = await apiClient.patch<ApiResponse<VisitAttachment>>(
+  const response = await hmsClient.patch<ApiResponse<VisitAttachment>>(
     url,
     data
   );
@@ -71,5 +71,5 @@ export const updateVisitAttachment = async (
 
 export const deleteVisitAttachment = async (id: number): Promise<void> => {
   const url = buildOPDUrl(OPD_API_CONFIG.VISIT_ATTACHMENTS.DELETE, { id });
-  await apiClient.delete(url);
+  await hmsClient.delete(url);
 };

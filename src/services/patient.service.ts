@@ -2,7 +2,7 @@
 // Complete service layer for Patient module
 // Handles all API calls to Django backend
 
-import apiClient from '@/api/client';
+import { hmsClient } from '@/lib/client';
 import { API_CONFIG } from '@/lib/apiConfig';
 import type {
   PatientProfile,
@@ -31,7 +31,7 @@ import type {
 export const getPatients = async (
   params?: PatientListParams
 ): Promise<PaginatedResponse<PatientProfile>> => {
-  const response = await apiClient.get(API_CONFIG.HMS.PATIENTS.LIST, { params });
+  const response = await hmsClient.get(API_CONFIG.HMS.PATIENTS.LIST, { params });
   return response.data;
 };
 
@@ -40,7 +40,7 @@ export const getPatients = async (
  */
 export const getPatientById = async (id: number): Promise<PatientProfile> => {
   const url = API_CONFIG.HMS.PATIENTS.DETAIL.replace(':id', String(id));
-  const response = await apiClient.get<ApiResponse<PatientProfile>>(url);
+  const response = await hmsClient.get<ApiResponse<PatientProfile>>(url);
   return response.data.data;
 };
 
@@ -50,7 +50,7 @@ export const getPatientById = async (id: number): Promise<PatientProfile> => {
 export const createPatient = async (
   data: PatientCreateData
 ): Promise<PatientProfile> => {
-  const response = await apiClient.post<ApiResponse<PatientProfile>>(
+  const response = await hmsClient.post<ApiResponse<PatientProfile>>(
     API_CONFIG.HMS.PATIENTS.CREATE,
     data
   );
@@ -65,7 +65,7 @@ export const updatePatient = async (
   data: PatientUpdateData
 ): Promise<PatientProfile> => {
   const url = API_CONFIG.HMS.PATIENTS.UPDATE.replace(':id', String(id));
-  const response = await apiClient.patch<ApiResponse<PatientProfile>>(url, data);
+  const response = await hmsClient.patch<ApiResponse<PatientProfile>>(url, data);
   return response.data.data;
 };
 
@@ -74,7 +74,7 @@ export const updatePatient = async (
  */
 export const deletePatient = async (id: number): Promise<void> => {
   const url = API_CONFIG.HMS.PATIENTS.DELETE.replace(':id', String(id));
-  await apiClient.delete(url);
+  await hmsClient.delete(url);
 };
 
 // ==================== PATIENT VITALS ====================
@@ -86,7 +86,7 @@ export const getPatientVitals = async (
   patientId: number
 ): Promise<PaginatedResponse<PatientVitals>> => {
   const url = API_CONFIG.HMS.PATIENTS.VITALS_LIST.replace(':id', String(patientId));
-  const response = await apiClient.get(url);
+  const response = await hmsClient.get(url);
   return response.data;
 };
 
@@ -98,7 +98,7 @@ export const recordPatientVitals = async (
   data: VitalsCreateData
 ): Promise<PatientVitals> => {
   const url = API_CONFIG.HMS.PATIENTS.RECORD_VITALS.replace(':id', String(patientId));
-  const response = await apiClient.post<ApiResponse<PatientVitals>>(url, data);
+  const response = await hmsClient.post<ApiResponse<PatientVitals>>(url, data);
   return response.data.data;
 };
 
@@ -111,7 +111,7 @@ export const getPatientAllergies = async (
   patientId: number
 ): Promise<PaginatedResponse<PatientAllergy>> => {
   const url = API_CONFIG.HMS.PATIENTS.ALLERGIES_LIST.replace(':id', String(patientId));
-  const response = await apiClient.get(url);
+  const response = await hmsClient.get(url);
   return response.data;
 };
 
@@ -123,7 +123,7 @@ export const addPatientAllergy = async (
   data: AllergyCreateData
 ): Promise<PatientAllergy> => {
   const url = API_CONFIG.HMS.PATIENTS.ADD_ALLERGY.replace(':id', String(patientId));
-  const response = await apiClient.post<ApiResponse<PatientAllergy>>(url, data);
+  const response = await hmsClient.post<ApiResponse<PatientAllergy>>(url, data);
   return response.data.data;
 };
 
@@ -136,7 +136,7 @@ export const getPatientMedicalHistory = async (
   patientId: number
 ): Promise<PaginatedResponse<PatientMedicalHistory>> => {
   const url = API_CONFIG.HMS.PATIENTS.MEDICAL_HISTORY_LIST.replace(':id', String(patientId));
-  const response = await apiClient.get(url);
+  const response = await hmsClient.get(url);
   return response.data;
 };
 
@@ -148,7 +148,7 @@ export const addPatientMedicalHistory = async (
   data: MedicalHistoryCreateData
 ): Promise<PatientMedicalHistory> => {
   const url = API_CONFIG.HMS.PATIENTS.ADD_MEDICAL_HISTORY.replace(':id', String(patientId));
-  const response = await apiClient.post<ApiResponse<PatientMedicalHistory>>(url, data);
+  const response = await hmsClient.post<ApiResponse<PatientMedicalHistory>>(url, data);
   return response.data.data;
 };
 
@@ -161,7 +161,7 @@ export const getPatientMedications = async (
   patientId: number
 ): Promise<PaginatedResponse<PatientMedication>> => {
   const url = API_CONFIG.HMS.PATIENTS.MEDICATIONS_LIST.replace(':id', String(patientId));
-  const response = await apiClient.get(url);
+  const response = await hmsClient.get(url);
   return response.data;
 };
 
@@ -173,7 +173,7 @@ export const addPatientMedication = async (
   data: MedicationCreateData
 ): Promise<PatientMedication> => {
   const url = API_CONFIG.HMS.PATIENTS.ADD_MEDICATION.replace(':id', String(patientId));
-  const response = await apiClient.post<ApiResponse<PatientMedication>>(url, data);
+  const response = await hmsClient.post<ApiResponse<PatientMedication>>(url, data);
   return response.data.data;
 };
 
@@ -183,7 +183,7 @@ export const addPatientMedication = async (
  * Get patient statistics (Admin only)
  */
 export const getPatientStatistics = async (): Promise<PatientStatistics> => {
-  const response = await apiClient.get<ApiResponse<PatientStatistics>>(
+  const response = await hmsClient.get<ApiResponse<PatientStatistics>>(
     API_CONFIG.HMS.PATIENTS.STATISTICS
   );
   return response.data.data;
@@ -202,7 +202,7 @@ export const updatePatientAllergy = async (
   allergyId: number,
   data: Partial<AllergyCreateData>
 ): Promise<PatientAllergy> => {
-  const response = await apiClient.patch<ApiResponse<PatientAllergy>>(
+  const response = await hmsClient.patch<ApiResponse<PatientAllergy>>(
     `/patients/allergies/${allergyId}/`,
     data
   );
@@ -213,7 +213,7 @@ export const updatePatientAllergy = async (
  * Delete patient allergy
  */
 export const deletePatientAllergy = async (allergyId: number): Promise<void> => {
-  await apiClient.delete(`/patients/allergies/${allergyId}/`);
+  await hmsClient.delete(`/patients/allergies/${allergyId}/`);
 };
 
 /**
@@ -223,7 +223,7 @@ export const updatePatientMedicalHistory = async (
   historyId: number,
   data: Partial<MedicalHistoryCreateData>
 ): Promise<PatientMedicalHistory> => {
-  const response = await apiClient.patch<ApiResponse<PatientMedicalHistory>>(
+  const response = await hmsClient.patch<ApiResponse<PatientMedicalHistory>>(
     `/patients/medical-history/${historyId}/`,
     data
   );
@@ -234,7 +234,7 @@ export const updatePatientMedicalHistory = async (
  * Delete medical history
  */
 export const deletePatientMedicalHistory = async (historyId: number): Promise<void> => {
-  await apiClient.delete(`/patients/medical-history/${historyId}/`);
+  await hmsClient.delete(`/patients/medical-history/${historyId}/`);
 };
 
 /**
@@ -244,7 +244,7 @@ export const updatePatientMedication = async (
   medicationId: number,
   data: Partial<MedicationCreateData>
 ): Promise<PatientMedication> => {
-  const response = await apiClient.patch<ApiResponse<PatientMedication>>(
+  const response = await hmsClient.patch<ApiResponse<PatientMedication>>(
     `/patients/medications/${medicationId}/`,
     data
   );
@@ -255,7 +255,7 @@ export const updatePatientMedication = async (
  * Delete patient medication
  */
 export const deletePatientMedication = async (medicationId: number): Promise<void> => {
-  await apiClient.delete(`/patients/medications/${medicationId}/`);
+  await hmsClient.delete(`/patients/medications/${medicationId}/`);
 };
 
 /**
@@ -263,6 +263,6 @@ export const deletePatientMedication = async (medicationId: number): Promise<voi
  */
 export const getPatientDetail = async (id: number): Promise<PatientDetail> => {
   const url = API_CONFIG.HMS.PATIENTS.DETAIL.replace(':id', String(id));
-  const response = await apiClient.get<ApiResponse<PatientDetail>>(url);
+  const response = await hmsClient.get<ApiResponse<PatientDetail>>(url);
   return response.data.data;
 };

@@ -1,5 +1,5 @@
 // src/services/opd/visitFinding.service.ts
-import apiClient from '@/api/client';
+import { hmsClient } from '@/lib/client';
 import { OPD_API_CONFIG, buildOPDUrl } from '@/lib/apiConfig';
 import type {
   VisitFinding,
@@ -15,7 +15,7 @@ import type {
 export const getVisitFindings = async (
   params?: VisitFindingListParams
 ): Promise<PaginatedResponse<VisitFinding>> => {
-  const response = await apiClient.get(OPD_API_CONFIG.VISIT_FINDINGS.LIST, {
+  const response = await hmsClient.get(OPD_API_CONFIG.VISIT_FINDINGS.LIST, {
     params,
   });
   return response.data;
@@ -25,14 +25,14 @@ export const getVisitFindingById = async (
   id: number
 ): Promise<VisitFinding> => {
   const url = buildOPDUrl(OPD_API_CONFIG.VISIT_FINDINGS.DETAIL, { id });
-  const response = await apiClient.get<ApiResponse<VisitFinding>>(url);
+  const response = await hmsClient.get<ApiResponse<VisitFinding>>(url);
   return response.data.data;
 };
 
 export const createVisitFinding = async (
   data: VisitFindingCreateData
 ): Promise<VisitFinding> => {
-  const response = await apiClient.post<ApiResponse<VisitFinding>>(
+  const response = await hmsClient.post<ApiResponse<VisitFinding>>(
     OPD_API_CONFIG.VISIT_FINDINGS.CREATE,
     data
   );
@@ -44,11 +44,11 @@ export const updateVisitFinding = async (
   data: VisitFindingUpdateData
 ): Promise<VisitFinding> => {
   const url = buildOPDUrl(OPD_API_CONFIG.VISIT_FINDINGS.UPDATE, { id });
-  const response = await apiClient.patch<ApiResponse<VisitFinding>>(url, data);
+  const response = await hmsClient.patch<ApiResponse<VisitFinding>>(url, data);
   return response.data.data;
 };
 
 export const deleteVisitFinding = async (id: number): Promise<void> => {
   const url = buildOPDUrl(OPD_API_CONFIG.VISIT_FINDINGS.DELETE, { id });
-  await apiClient.delete(url);
+  await hmsClient.delete(url);
 };

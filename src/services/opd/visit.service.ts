@@ -1,5 +1,5 @@
 // src/services/opd/visit.service.ts
-import apiClient from '@/api/client';
+import { hmsClient } from '@/lib/client';
 import { OPD_API_CONFIG, buildOPDUrl } from '@/lib/apiConfig';
 import type {
   Visit,
@@ -21,19 +21,19 @@ import type {
 export const getVisits = async (
   params?: VisitListParams
 ): Promise<PaginatedResponse<Visit>> => {
-  const response = await apiClient.get(OPD_API_CONFIG.VISITS.LIST, { params });
+  const response = await hmsClient.get(OPD_API_CONFIG.VISITS.LIST, { params });
   return response.data;
 };
 
 export const getVisitById = async (id: number): Promise<Visit> => {
   const url = buildOPDUrl(OPD_API_CONFIG.VISITS.DETAIL, { id });
-  const response = await apiClient.get<Visit>(url);
+  const response = await hmsClient.get<Visit>(url);
   // API returns visit directly, not wrapped
   return response.data;
 };
 
 export const createVisit = async (data: VisitCreateData): Promise<Visit> => {
-  const response = await apiClient.post<ApiResponse<Visit>>(
+  const response = await hmsClient.post<ApiResponse<Visit>>(
     OPD_API_CONFIG.VISITS.CREATE,
     data
   );
@@ -45,20 +45,20 @@ export const updateVisit = async (
   data: VisitUpdateData
 ): Promise<Visit> => {
   const url = buildOPDUrl(OPD_API_CONFIG.VISITS.UPDATE, { id });
-  const response = await apiClient.patch<ApiResponse<Visit>>(url, data);
+  const response = await hmsClient.patch<ApiResponse<Visit>>(url, data);
   return response.data.data;
 };
 
 export const deleteVisit = async (id: number): Promise<void> => {
   const url = buildOPDUrl(OPD_API_CONFIG.VISITS.DELETE, { id });
-  await apiClient.delete(url);
+  await hmsClient.delete(url);
 };
 
 // ==================== VISIT ACTIONS ====================
 
 // Modified: Now returns just the Visit[] array for easier use in components
 export const getTodayVisits = async (): Promise<Visit[]> => {
-  const response = await apiClient.get<{
+  const response = await hmsClient.get<{
     success: boolean;
     count: number;
     data: Visit[];
@@ -72,7 +72,7 @@ export const getTodayVisitsRaw = async (): Promise<{
   count: number;
   data: Visit[];
 }> => {
-  const response = await apiClient.get(OPD_API_CONFIG.VISITS.TODAY);
+  const response = await hmsClient.get(OPD_API_CONFIG.VISITS.TODAY);
   return response.data;
 };
 
@@ -81,7 +81,7 @@ export const getQueue = async (): Promise<{
   count: number;
   data: Visit[];
 }> => {
-  const response = await apiClient.get(OPD_API_CONFIG.VISITS.QUEUE);
+  const response = await hmsClient.get(OPD_API_CONFIG.VISITS.QUEUE);
   return response.data;
 };
 
@@ -91,7 +91,7 @@ export const getVisitQueue = async (): Promise<{
   called: Visit[];
   in_consultation: Visit[];
 }> => {
-  const response = await apiClient.get<{
+  const response = await hmsClient.get<{
     success: boolean;
     data: {
       waiting: Visit[];
@@ -107,7 +107,7 @@ export const callNextPatient = async (): Promise<{
   message: string;
   data: Visit | null;
 }> => {
-  const response = await apiClient.post(OPD_API_CONFIG.VISITS.CALL_NEXT);
+  const response = await hmsClient.post(OPD_API_CONFIG.VISITS.CALL_NEXT);
   return response.data;
 };
 
@@ -115,7 +115,7 @@ export const completeVisit = async (
   id: number
 ): Promise<ApiResponse<Visit>> => {
   const url = buildOPDUrl(OPD_API_CONFIG.VISITS.COMPLETE, { id });
-  const response = await apiClient.post<ApiResponse<Visit>>(url);
+  const response = await hmsClient.post<ApiResponse<Visit>>(url);
   return response.data;
 };
 
@@ -123,7 +123,7 @@ export const completeVisit = async (
 export const getVisitStatistics = async (
   period: 'day' | 'week' | 'month' = 'day'
 ): Promise<VisitStatistics> => {
-  const response = await apiClient.get<ApiResponse<VisitStatistics>>(
+  const response = await hmsClient.get<ApiResponse<VisitStatistics>>(
     OPD_API_CONFIG.VISITS.STATISTICS,
     { params: { period } }
   );
@@ -134,7 +134,7 @@ export const getVisitStatistics = async (
 export const getVisitStatisticsRaw = async (
   params?: { start_date?: string; end_date?: string }
 ): Promise<ApiResponse<VisitStatistics>> => {
-  const response = await apiClient.get<ApiResponse<VisitStatistics>>(
+  const response = await hmsClient.get<ApiResponse<VisitStatistics>>(
     OPD_API_CONFIG.VISITS.STATISTICS,
     { params }
   );
