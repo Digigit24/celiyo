@@ -76,11 +76,11 @@ const App = () => {
     <ThemeProvider defaultTheme="light" storageKey="hms-ui-theme">
       <SWRConfig value={swrConfig}>
         <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AuthProvider>
                 <Routes>
                   {/* Public Routes */}
                   {publicRoutes.map((route, index) => (
@@ -97,9 +97,9 @@ const App = () => {
                     }
                   />
                 </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </AuthProvider>
+              </AuthProvider>
+            </BrowserRouter>
+          </TooltipProvider>
         </QueryClientProvider>
       </SWRConfig>
     </ThemeProvider>

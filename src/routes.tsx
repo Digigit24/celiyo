@@ -1,7 +1,8 @@
 // src/routes.tsx
 import { RouteObject } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
-import PaymentsListPage from './pages/payments/PaymentsListPage';
+
+
 
 // Lazy load components for better code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -22,6 +23,10 @@ const ServiceCategoriesListPage = lazy(() => import('./pages/services/ServiceCat
 const DiagnosticTestsListPage = lazy(() => import('./pages/services/DiagnosticTestsListPage'));
 const NursingPackagesListPage = lazy(() => import('./pages/services/NursingPackagesListPage'));
 const HomeHealthcareListPage = lazy(() => import('./pages/services/HomeHealthcareListPage'));
+const TenantsListPage = lazy(() => import('./pages/tenants/TenantsListPage'));
+const TenantDashboardPage = lazy(() => import('./pages/tenants/TenantDashboardPage'));
+const PaymentsListPage = lazy(() => import('./pages/payments/PaymentsListPage'));
+
 
 // Pharmacy
 const PharmacyMainPage = lazy(() => import('./pages/pharmacy/PharmacyMainPage'));
@@ -298,6 +303,32 @@ export const protectedRoutes: AppRoute[] = [
       },
     ],
   },
+  {
+    path: '/tenants',
+    title: 'Tenants',
+    icon: 'BuildingStorefront',
+    children: [
+      {
+        path: '/tenants',
+        element: (
+          <LazyWrapper>
+            <TenantsListPage />
+          </LazyWrapper>
+        ),
+        title: 'Tenant List',
+      },
+      {
+        path: '/tenants/dashboard',
+        element: (
+          <LazyWrapper>
+            <TenantDashboardPage />
+          </LazyWrapper>
+        ),
+        title: 'Tenant Dashboard',
+      },
+    ],
+  },
+
   {
     path: '/pharmacy',
     element: (

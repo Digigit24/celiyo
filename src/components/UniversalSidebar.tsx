@@ -151,6 +151,25 @@ const menuItems: MenuItem[] = [
   path: '/payments',
 },
 
+  {
+    id: "tenants",
+    label: "Tenants",
+    icon: Database,
+    children: [
+      {
+        id: "tenants-list",
+        label: "Tenant List",
+        icon: Users,
+        path: "/tenants",
+      },
+      {
+        id: "tenant-dashboard",
+        label: "Dashboard",
+        icon: LayoutDashboard,
+        path: "/tenants/dashboard",
+      },
+    ],
+  },
 
   {
     id: "masters",

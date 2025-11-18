@@ -110,7 +110,7 @@ import type {
  */
 export const useVisits = (params?: VisitListParams) => {
   const queryString = buildQueryString(params);
-  const url = `${API_CONFIG.OPD.VISITS_LIST}${queryString}`;
+  const url = `${API_CONFIG.HMS.OPD.VISITS_LIST}${queryString}`;
 
   const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<Visit>>(
     url,
@@ -137,7 +137,7 @@ export const useVisits = (params?: VisitListParams) => {
  */
 export const useVisit = (id: number | null) => {
   const { data, error, isLoading, mutate } = useSWR<Visit>(
-    id ? `${API_CONFIG.OPD.VISIT_DETAIL.replace(':id', String(id))}` : null,
+    id ? `${API_CONFIG.HMS.OPD.VISIT_DETAIL.replace(':id', String(id))}` : null,
     () => (id ? getVisitById(id) : null),
     {
       revalidateOnFocus: false,
@@ -157,7 +157,7 @@ export const useVisit = (id: number | null) => {
  */
 export const useTodayVisits = () => {
   const { data, error, isLoading, mutate } = useSWR(
-    API_CONFIG.OPD.VISITS_TODAY,
+    API_CONFIG.HMS.OPD.VISITS_TODAY,
     getTodayVisits,
     {
       revalidateOnFocus: false,
@@ -179,7 +179,7 @@ export const useTodayVisits = () => {
  */
 export const useQueue = () => {
   const { data, error, isLoading, mutate } = useSWR(
-    API_CONFIG.OPD.VISITS_QUEUE,
+    API_CONFIG.HMS.OPD.VISITS_QUEUE,
     getQueue,
     {
       revalidateOnFocus: false,
@@ -214,7 +214,7 @@ export const useVisitStatistics = (params?: {
   end_date?: string;
 }) => {
   const queryString = buildQueryString(params);
-  const url = `${API_CONFIG.OPD.VISITS_STATISTICS}${queryString}`;
+  const url = `${API_CONFIG.HMS.OPD.VISITS_STATISTICS}${queryString}`;
 
   const { data, error, isLoading, mutate } = useSWR<{ data: VisitStatistics }>(
     url,
@@ -237,7 +237,7 @@ export const useVisitStatistics = (params?: {
  */
 export const useCreateVisit = () => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.OPD.VISITS_LIST,
+    API_CONFIG.HMS.OPD.VISITS_LIST,
     async (_key: string, { arg }: { arg: VisitCreateData }) =>
       await createVisit(arg)
   );
@@ -254,7 +254,7 @@ export const useCreateVisit = () => {
  */
 export const useUpdateVisit = (id: number) => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.OPD.VISIT_DETAIL.replace(':id', String(id)),
+    API_CONFIG.HMS.OPD.VISIT_DETAIL.replace(':id', String(id)),
     async (_key: string, { arg }: { arg: VisitUpdateData }) =>
       await updateVisit(id, arg)
   );
@@ -271,7 +271,7 @@ export const useUpdateVisit = (id: number) => {
  */
 export const useDeleteVisit = () => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.OPD.VISITS_LIST,
+    API_CONFIG.HMS.OPD.VISITS_LIST,
     async (_key: string, { arg }: { arg: number }) => await deleteVisit(arg)
   );
 
@@ -287,7 +287,7 @@ export const useDeleteVisit = () => {
  */
 export const useCallNextPatient = () => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.OPD.VISITS_CALL_NEXT,
+    API_CONFIG.HMS.OPD.VISITS_CALL_NEXT,
     async () => await callNextPatient()
   );
 
@@ -303,7 +303,7 @@ export const useCallNextPatient = () => {
  */
 export const useCompleteVisit = (id: number) => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.OPD.VISIT_COMPLETE.replace(':id', String(id)),
+    API_CONFIG.HMS.OPD.VISIT_COMPLETE.replace(':id', String(id)),
     async () => await completeVisit(id)
   );
 
@@ -321,7 +321,7 @@ export const useCompleteVisit = (id: number) => {
  */
 export const useOPDBills = (params?: OPDBillListParams) => {
   const queryString = buildQueryString(params);
-  const url = `${API_CONFIG.OPD_BILLS.LIST}${queryString}`;
+  const url = `${API_CONFIG.HMS.OPD_BILLS.LIST}${queryString}`;
 
   const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<OPDBill>>(
     url,
@@ -348,7 +348,7 @@ export const useOPDBills = (params?: OPDBillListParams) => {
  */
 export const useOPDBill = (id: number | null) => {
   const { data, error, isLoading, mutate } = useSWR<OPDBill>(
-    id ? `${API_CONFIG.OPD_BILLS.DETAIL.replace(':id', String(id))}` : null,
+    id ? `${API_CONFIG.HMS.OPD_BILLS.DETAIL.replace(':id', String(id))}` : null,
     () => (id ? getOPDBillById(id) : null),
     {
       revalidateOnFocus: false,
@@ -368,7 +368,7 @@ export const useOPDBill = (id: number | null) => {
  */
 export const useCreateOPDBill = () => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.OPD_BILLS.CREATE,
+    API_CONFIG.HMS.OPD_BILLS.CREATE,
     async (_key: string, { arg }: { arg: OPDBillCreateData }) =>
       await createOPDBill(arg)
   );
@@ -385,7 +385,7 @@ export const useCreateOPDBill = () => {
  */
 export const useUpdateOPDBill = (id: number) => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.OPD_BILLS.UPDATE.replace(':id', String(id)),
+    API_CONFIG.HMS.OPD_BILLS.UPDATE.replace(':id', String(id)),
     async (_key: string, { arg }: { arg: OPDBillUpdateData }) =>
       await updateOPDBill(id, arg)
   );
@@ -402,7 +402,7 @@ export const useUpdateOPDBill = (id: number) => {
  */
 export const useDeleteOPDBill = () => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.OPD_BILLS.LIST,
+    API_CONFIG.HMS.OPD_BILLS.LIST,
     async (_key: string, { arg }: { arg: number }) => await deleteOPDBill(arg)
   );
 
@@ -418,7 +418,7 @@ export const useDeleteOPDBill = () => {
  */
 export const useRecordPayment = (id: number) => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.OPD_BILLS.RECORD_PAYMENT.replace(':id', String(id)),
+    API_CONFIG.HMS.OPD_BILLS.RECORD_PAYMENT.replace(':id', String(id)),
     async (_key: string, { arg }: { arg: PaymentRecordData }) =>
       await recordPayment(id, arg)
   );
@@ -437,7 +437,7 @@ export const useRecordPayment = (id: number) => {
  */
 export const useClinicalNotes = (params?: ClinicalNoteListParams) => {
   const queryString = buildQueryString(params);
-  const url = `${API_CONFIG.CLINICAL_NOTES.LIST}${queryString}`;
+  const url = `${API_CONFIG.HMS.CLINICAL_NOTES.LIST}${queryString}`;
 
   const { data, error, isLoading, mutate } = useSWR<
     PaginatedResponse<ClinicalNote>
@@ -462,7 +462,7 @@ export const useClinicalNotes = (params?: ClinicalNoteListParams) => {
  */
 export const useClinicalNote = (id: number | null) => {
   const { data, error, isLoading, mutate } = useSWR<ClinicalNote>(
-    id ? `${API_CONFIG.CLINICAL_NOTES.DETAIL.replace(':id', String(id))}` : null,
+    id ? `${API_CONFIG.HMS.CLINICAL_NOTES.DETAIL.replace(':id', String(id))}` : null,
     () => (id ? getClinicalNoteById(id) : null),
     {
       revalidateOnFocus: false,
@@ -482,7 +482,7 @@ export const useClinicalNote = (id: number | null) => {
  */
 export const useCreateClinicalNote = () => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.CLINICAL_NOTES.CREATE,
+    API_CONFIG.HMS.CLINICAL_NOTES.CREATE,
     async (_key: string, { arg }: { arg: ClinicalNoteCreateData }) =>
       await createClinicalNote(arg)
   );
@@ -499,7 +499,7 @@ export const useCreateClinicalNote = () => {
  */
 export const useUpdateClinicalNote = (id: number) => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.CLINICAL_NOTES.UPDATE.replace(':id', String(id)),
+    API_CONFIG.HMS.CLINICAL_NOTES.UPDATE.replace(':id', String(id)),
     async (_key: string, { arg }: { arg: ClinicalNoteUpdateData }) =>
       await updateClinicalNote(id, arg)
   );
@@ -516,7 +516,7 @@ export const useUpdateClinicalNote = (id: number) => {
  */
 export const useDeleteClinicalNote = () => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.CLINICAL_NOTES.LIST,
+    API_CONFIG.HMS.CLINICAL_NOTES.LIST,
     async (_key: string, { arg }: { arg: number }) =>
       await deleteClinicalNote(arg)
   );
@@ -535,7 +535,7 @@ export const useDeleteClinicalNote = () => {
  */
 export const useVisitFindings = (params?: VisitFindingListParams) => {
   const queryString = buildQueryString(params);
-  const url = `${API_CONFIG.VISIT_FINDINGS.LIST}${queryString}`;
+  const url = `${API_CONFIG.HMS.VISIT_FINDINGS.LIST}${queryString}`;
 
   const { data, error, isLoading, mutate } = useSWR<
     PaginatedResponse<VisitFinding>
@@ -560,7 +560,7 @@ export const useVisitFindings = (params?: VisitFindingListParams) => {
  */
 export const useCreateVisitFinding = () => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.VISIT_FINDINGS.CREATE,
+    API_CONFIG.HMS.VISIT_FINDINGS.CREATE,
     async (_key: string, { arg }: { arg: VisitFindingCreateData }) =>
       await createVisitFinding(arg)
   );
@@ -579,7 +579,7 @@ export const useCreateVisitFinding = () => {
  */
 export const useProcedureMasters = (params?: ProcedureMasterListParams) => {
   const queryString = buildQueryString(params);
-  const url = `${API_CONFIG.PROCEDURE_MASTERS.LIST}${queryString}`;
+  const url = `${API_CONFIG.HMS.PROCEDURE_MASTERS.LIST}${queryString}`;
 
   const { data, error, isLoading, mutate } = useSWR<
     PaginatedResponse<ProcedureMaster>
@@ -606,7 +606,7 @@ export const useProcedureMasters = (params?: ProcedureMasterListParams) => {
  */
 export const useProcedurePackages = (params?: ProcedurePackageListParams) => {
   const queryString = buildQueryString(params);
-  const url = `${API_CONFIG.PROCEDURE_PACKAGES.LIST}${queryString}`;
+  const url = `${API_CONFIG.HMS.PROCEDURE_PACKAGES.LIST}${queryString}`;
 
   const { data, error, isLoading, mutate } = useSWR<
     PaginatedResponse<ProcedurePackage>
@@ -633,7 +633,7 @@ export const useProcedurePackages = (params?: ProcedurePackageListParams) => {
  */
 export const useProcedureBills = (params?: ProcedureBillListParams) => {
   const queryString = buildQueryString(params);
-  const url = `${API_CONFIG.PROCEDURE_BILLS.LIST}${queryString}`;
+  const url = `${API_CONFIG.HMS.PROCEDURE_BILLS.LIST}${queryString}`;
 
   const { data, error, isLoading, mutate } = useSWR<
     PaginatedResponse<ProcedureBill>
@@ -660,7 +660,7 @@ export const useProcedureBills = (params?: ProcedureBillListParams) => {
  */
 export const useVisitAttachments = (params?: VisitAttachmentListParams) => {
   const queryString = buildQueryString(params);
-  const url = `${API_CONFIG.VISIT_ATTACHMENTS.LIST}${queryString}`;
+  const url = `${API_CONFIG.HMS.VISIT_ATTACHMENTS.LIST}${queryString}`;
 
   const { data, error, isLoading, mutate } = useSWR<
     PaginatedResponse<VisitAttachment>
@@ -685,7 +685,7 @@ export const useVisitAttachments = (params?: VisitAttachmentListParams) => {
  */
 export const useCreateVisitAttachment = () => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.VISIT_ATTACHMENTS.CREATE,
+    API_CONFIG.HMS.VISIT_ATTACHMENTS.CREATE,
     async (_key: string, { arg }: { arg: VisitAttachmentCreateData }) =>
       await createVisitAttachment(arg)
   );

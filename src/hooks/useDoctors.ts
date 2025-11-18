@@ -19,7 +19,7 @@ import type { SpecialtyListParams } from '@/types/specialty.types';
 // Hook to fetch doctors list with filters
 export const useDoctors = (params?: DoctorListParams) => {
   const queryString = buildQueryString(params);
-  const url = `${API_CONFIG.DOCTORS.PROFILES_LIST}${queryString}`;
+  const url = `${API_CONFIG.HMS.DOCTORS.PROFILES_LIST}${queryString}`;
 
   const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<Doctor>>(
     url,
@@ -42,7 +42,7 @@ export const useDoctors = (params?: DoctorListParams) => {
 
 // Hook to fetch single doctor
 export const useDoctor = (id: number | string | null) => {
-  const url = id ? buildUrl(API_CONFIG.DOCTORS.PROFILE_DETAIL, { id }) : null;
+  const url = id ? buildUrl(API_CONFIG.HMS.DOCTORS.PROFILE_DETAIL, { id }, 'hms') : null;
 
   const { data, error, isLoading, mutate } = useSWR<Doctor>(
     url,
@@ -62,7 +62,7 @@ export const useDoctor = (id: number | string | null) => {
 // Hook to create doctor
 export const useCreateDoctor = () => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.DOCTORS.PROFILE_CREATE,
+    buildUrl(API_CONFIG.HMS.DOCTORS.PROFILE_CREATE, undefined, 'hms'),
     postFetcher<Doctor>
   );
 
@@ -75,7 +75,7 @@ export const useCreateDoctor = () => {
 
 // Hook to update doctor
 export const useUpdateDoctor = (id: number | string) => {
-  const url = buildUrl(API_CONFIG.DOCTORS.PROFILE_UPDATE, { id });
+  const url = buildUrl(API_CONFIG.HMS.DOCTORS.PROFILE_UPDATE, { id }, 'hms');
 
   const { trigger, isMutating, error } = useSWRMutation(
     url,
@@ -92,9 +92,9 @@ export const useUpdateDoctor = (id: number | string) => {
 // Hook to delete doctor
 export const useDeleteDoctor = () => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.DOCTORS.PROFILE_DELETE,
+    API_CONFIG.HMS.DOCTORS.PROFILE_DELETE,
     async (url: string, { arg }: { arg: { id: number | string } }) => {
-      const deleteUrl = buildUrl(url, { id: arg.id });
+      const deleteUrl = buildUrl(url, { id: arg.id }, 'hms');
       return deleteFetcher(deleteUrl);
     }
   );
@@ -111,7 +111,7 @@ export const useDeleteDoctor = () => {
 // Hook to fetch all specialties with filters
 export const useSpecialties = (params?: SpecialtyListParams) => {
   const queryString = buildQueryString(params);
-  const url = `${API_CONFIG.DOCTORS.SPECIALTIES_LIST}${queryString}`;
+  const url = `${API_CONFIG.HMS.DOCTORS.SPECIALTIES_LIST}${queryString}`;
 
   const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<Specialty>>(
     url,
@@ -135,7 +135,7 @@ export const useSpecialties = (params?: SpecialtyListParams) => {
 
 // Hook to fetch single specialty
 export const useSpecialty = (id: number | string | null) => {
-  const url = id ? buildUrl(API_CONFIG.DOCTORS.SPECIALTY_DETAIL, { id }) : null;
+  const url = id ? buildUrl(API_CONFIG.HMS.DOCTORS.SPECIALTY_DETAIL, { id }, 'hms') : null;
 
   const { data, error, isLoading, mutate } = useSWR<ApiResponse<Specialty>>(
     url,
@@ -155,7 +155,7 @@ export const useSpecialty = (id: number | string | null) => {
 // Hook to create specialty
 export const useCreateSpecialty = () => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.DOCTORS.SPECIALTY_CREATE,
+    buildUrl(API_CONFIG.HMS.DOCTORS.SPECIALTY_CREATE, undefined, 'hms'),
     postFetcher<Specialty>
   );
 
@@ -168,7 +168,7 @@ export const useCreateSpecialty = () => {
 
 // Hook to update specialty
 export const useUpdateSpecialty = (id: number | string) => {
-  const url = buildUrl(API_CONFIG.DOCTORS.SPECIALTY_UPDATE, { id });
+  const url = buildUrl(API_CONFIG.HMS.DOCTORS.SPECIALTY_UPDATE, { id }, 'hms');
 
   const { trigger, isMutating, error } = useSWRMutation(
     url,
@@ -185,9 +185,9 @@ export const useUpdateSpecialty = (id: number | string) => {
 // Hook to delete specialty
 export const useDeleteSpecialty = () => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.DOCTORS.SPECIALTY_DELETE,
+    API_CONFIG.HMS.DOCTORS.SPECIALTY_DELETE,
     async (url: string, { arg }: { arg: { id: number | string } }) => {
-      const deleteUrl = buildUrl(url, { id: arg.id });
+      const deleteUrl = buildUrl(url, { id: arg.id }, 'hms');
       return deleteFetcher(deleteUrl);
     }
   );

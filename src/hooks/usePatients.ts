@@ -54,7 +54,7 @@ import type {
  */
 export const usePatients = (params?: PatientListParams) => {
   const queryString = buildQueryString(params);
-  const url = `${API_CONFIG.PATIENTS.LIST}${queryString}`;
+  const url = `${API_CONFIG.HMS.PATIENTS.LIST}${queryString}`;
 
   const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<PatientProfile>>(
     url,
@@ -86,7 +86,7 @@ export const usePatients = (params?: PatientListParams) => {
  * const { patient, isLoading, error, mutate } = usePatient(123);
  */
 export const usePatient = (id: number | null) => {
-  const url = id ? API_CONFIG.PATIENTS.DETAIL.replace(':id', String(id)) : null;
+  const url = id ? API_CONFIG.HMS.PATIENTS.DETAIL.replace(':id', String(id)) : null;
 
   const { data, error, isLoading, mutate } = useSWR<PatientProfile>(
     url,
@@ -116,7 +116,7 @@ export const usePatient = (id: number | null) => {
  */
 export const useCreatePatient = () => {
   const { trigger, isMutating, error, data } = useSWRMutation(
-    API_CONFIG.PATIENTS.CREATE,
+    API_CONFIG.HMS.PATIENTS.CREATE,
     (_key, { arg }: { arg: PatientCreateData }) => createPatient(arg)
   );
 
@@ -140,7 +140,7 @@ export const useCreatePatient = () => {
  * const updated = await updatePatientData({ first_name: 'John' });
  */
 export const useUpdatePatient = (id: number) => {
-  const url = API_CONFIG.PATIENTS.UPDATE.replace(':id', String(id));
+  const url = API_CONFIG.HMS.PATIENTS.UPDATE.replace(':id', String(id));
 
   const { trigger, isMutating, error, data } = useSWRMutation(
     url,
@@ -167,7 +167,7 @@ export const useUpdatePatient = (id: number) => {
  */
 export const useDeletePatient = () => {
   const { trigger, isMutating, error } = useSWRMutation(
-    API_CONFIG.PATIENTS.DELETE,
+    API_CONFIG.HMS.PATIENTS.DELETE,
     (_key, { arg }: { arg: number }) => deletePatient(arg)
   );
 
@@ -190,7 +190,7 @@ export const useDeletePatient = () => {
  */
 export const usePatientVitals = (patientId: number | null) => {
   const url = patientId
-    ? API_CONFIG.PATIENTS.VITALS_LIST.replace(':id', String(patientId))
+    ? API_CONFIG.HMS.PATIENTS.VITALS_LIST.replace(':id', String(patientId))
     : null;
 
   const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<PatientVitals>>(
@@ -220,7 +220,7 @@ export const usePatientVitals = (patientId: number | null) => {
  * const vitals = await recordVitals({ temperature: "37.5", pulse_rate: 80 });
  */
 export const useRecordVitals = (patientId: number) => {
-  const url = API_CONFIG.PATIENTS.RECORD_VITALS.replace(':id', String(patientId));
+  const url = API_CONFIG.HMS.PATIENTS.RECORD_VITALS.replace(':id', String(patientId));
 
   const { trigger, isMutating, error, data } = useSWRMutation(
     url,
@@ -244,7 +244,7 @@ export const useRecordVitals = (patientId: number) => {
  */
 export const usePatientAllergies = (patientId: number | null) => {
   const url = patientId
-    ? API_CONFIG.PATIENTS.ALLERGIES_LIST.replace(':id', String(patientId))
+    ? API_CONFIG.HMS.PATIENTS.ALLERGIES_LIST.replace(':id', String(patientId))
     : null;
 
   const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<PatientAllergy>>(
@@ -270,7 +270,7 @@ export const usePatientAllergies = (patientId: number | null) => {
  * @returns Trigger function, loading state, error, and data
  */
 export const useAddAllergy = (patientId: number) => {
-  const url = API_CONFIG.PATIENTS.ADD_ALLERGY.replace(':id', String(patientId));
+  const url = API_CONFIG.HMS.PATIENTS.ADD_ALLERGY.replace(':id', String(patientId));
 
   const { trigger, isMutating, error, data } = useSWRMutation(
     url,
@@ -294,7 +294,7 @@ export const useAddAllergy = (patientId: number) => {
  */
 export const usePatientMedicalHistory = (patientId: number | null) => {
   const url = patientId
-    ? API_CONFIG.PATIENTS.MEDICAL_HISTORY_LIST.replace(':id', String(patientId))
+    ? API_CONFIG.HMS.PATIENTS.MEDICAL_HISTORY_LIST.replace(':id', String(patientId))
     : null;
 
   const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<PatientMedicalHistory>>(
@@ -320,7 +320,7 @@ export const usePatientMedicalHistory = (patientId: number | null) => {
  * @returns Trigger function, loading state, error, and data
  */
 export const useAddMedicalHistory = (patientId: number) => {
-  const url = API_CONFIG.PATIENTS.ADD_MEDICAL_HISTORY.replace(':id', String(patientId));
+  const url = API_CONFIG.HMS.PATIENTS.ADD_MEDICAL_HISTORY.replace(':id', String(patientId));
 
   const { trigger, isMutating, error, data } = useSWRMutation(
     url,
@@ -345,7 +345,7 @@ export const useAddMedicalHistory = (patientId: number) => {
  */
 export const usePatientMedications = (patientId: number | null) => {
   const url = patientId
-    ? API_CONFIG.PATIENTS.MEDICATIONS_LIST.replace(':id', String(patientId))
+    ? API_CONFIG.HMS.PATIENTS.MEDICATIONS_LIST.replace(':id', String(patientId))
     : null;
 
   const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<PatientMedication>>(
@@ -371,7 +371,7 @@ export const usePatientMedications = (patientId: number | null) => {
  * @returns Trigger function, loading state, error, and data
  */
 export const useAddMedication = (patientId: number) => {
-  const url = API_CONFIG.PATIENTS.ADD_MEDICATION.replace(':id', String(patientId));
+  const url = API_CONFIG.HMS.PATIENTS.ADD_MEDICATION.replace(':id', String(patientId));
 
   const { trigger, isMutating, error, data } = useSWRMutation(
     url,
@@ -395,7 +395,7 @@ export const useAddMedication = (patientId: number) => {
  */
 export const usePatientStatistics = () => {
   const { data, error, isLoading, mutate } = useSWR<PatientStatistics>(
-    API_CONFIG.PATIENTS.STATISTICS,
+    API_CONFIG.HMS.PATIENTS.STATISTICS,
     getPatientStatistics,
     {
       revalidateOnFocus: false,
